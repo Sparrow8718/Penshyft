@@ -2,8 +2,8 @@ import { db } from "@/lib/db/server";
 
 export const PLAN_LIMITS = {
   free: { sites: 1, areas: 1, staff: 15, price: 0, label: "Free", stripePriceId: null as string | null },
-  starter: { sites: 3, areas: 5, staff: 50, price: 29, label: "Starter", stripePriceId: process.env.STRIPE_PRICE_STARTER ?? "" },
-  professional: { sites: 10, areas: 25, staff: 250, price: 79, label: "Professional", stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL ?? "" },
+  starter: { sites: 3, areas: 5, staff: 50, price: 4.99, label: "Starter", stripePriceId: process.env.STRIPE_PRICE_STARTER ?? "" },
+  professional: { sites: 10, areas: 25, staff: 250, price: 14.99, label: "Professional", stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL ?? "" },
 } as const;
 
 export type PlanKey = keyof typeof PLAN_LIMITS;
