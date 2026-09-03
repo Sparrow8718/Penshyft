@@ -63,7 +63,9 @@ export function CoverageList({
   }
 
   function handleDelete(id: string) {
-    startTransition(() => deleteCoverage(id));
+    startTransition(() => {
+      deleteCoverage(id);
+    });
   }
 
   const grouped = DAYS.map((dayKey, i) => ({

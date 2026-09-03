@@ -4,10 +4,14 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/server";
 import { logAudit } from "@/lib/db/audit";
 import { getSession } from "@/lib/auth/session";
+import { siteInOrg } from "@/lib/auth/guards";
 
+// All date math is done in UTC so that parsing a bare "YYYY-MM-DD" (which JS
+// treats as UTC midnight) and computing "this Monday" agree on any host
+// timezone. Vercel runs UTC, but this keeps it correct off-Vercel too.
 function addDays(date: Date, days: number) {
   const d = new Date(date);
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
@@ -16,17 +20,22 @@ function toIso(date: Date) {
 }
 
 function getMonday(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
+  d.setUTCDate(d.getUTCDate() + diff);
   return d;
 }
 
-export async function generateRota(siteId: string, memberId: string, weekStartStr?: string) {
+export async function generateRota(siteId: string, weekStartStr?: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await siteInOrg(siteId, s.orgId))) return { error: "Site not found." };
+  const memberId = s.memberId;
+
   const supa = db();
 
-  const weekStart = weekStartStr ? new Date(weekStartStr) : getMonday(new Date());
+  const weekStart = weekStartStr ? new Date(`${weekStartStr}T00:00:00Z`) : getMonday(new Date());
   const weekStartIso = toIso(weekStart);
 
   const { data: templates } = await supa
@@ -94,8 +103,7 @@ export async function generateRota(siteId: string, memberId: string, weekStartSt
   // Auto-assign staff based on role + area qualifications
   await autoAssign(siteId, weekStartIso, weekEnd);
 
-  const s = await getSession();
-  if (s) logAudit({ orgId: s.orgId, actor: s.memberName, action: "rota.generated", meta: { shiftCount: shifts.length, weekStart: weekStartIso } });
+  await logAudit({ orgId: s.orgId, actor: s.memberName, action: "rota.generated", meta: { shiftCount: shifts.length, weekStart: weekStartIso } });
 
   revalidatePath("/rota");
   revalidatePath("/shifts");
@@ -188,11 +196,27 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
   // Check if a staff member is available (no overlapping shift on same date/time)
   const assignedShifts = new Map<string, { date: string; start: string; end: string }[]>();
 
+  // Minutes since midnight; an end at/before the start means the shift runs
+  // past midnight, so extend it by a day for interval comparison. (Overlaps
+  // that spill across two different calendar dates are still only compared
+  // within the same `date` bucket — a known limitation, not a regression.)
+  function toMinutes(t: string) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+  function rangeOverlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+    const as = toMinutes(aStart);
+    const ae = toMinutes(aEnd) <= as ? toMinutes(aEnd) + 1440 : toMinutes(aEnd);
+    const bs = toMinutes(bStart);
+    const be = toMinutes(bEnd) <= bs ? toMinutes(bEnd) + 1440 : toMinutes(bEnd);
+    return as < be && bs < ae;
+  }
+
   function isAvailable(staffId: string, date: string, start: string, end: string) {
     if (unavailableDates.get(staffId)?.has(date)) return false;
     const existing = assignedShifts.get(staffId) ?? [];
     return !existing.some(
-      (s) => s.date === date && s.start < end && s.end > start,
+      (s) => s.date === date && rangeOverlaps(s.start, s.end, start, end),
     );
   }
 

@@ -137,7 +137,9 @@ export function ShiftsList({
   }
 
   function handleCancel(shiftId: string) {
-    startTransition(() => cancelShift(shiftId));
+    startTransition(() => {
+      cancelShift(shiftId);
+    });
   }
 
   function handleAssign(e: React.FormEvent<HTMLFormElement>) {

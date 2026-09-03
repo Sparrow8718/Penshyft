@@ -27,7 +27,7 @@ export async function startImpersonation(orgId: string) {
     maxAge: 60 * 60 * 4,
   });
 
-  logAudit({
+  await logAudit({
     orgId: session.realOrgId,
     actor: session.memberId,
     action: "impersonate_start",
@@ -45,7 +45,7 @@ export async function stopImpersonation() {
   const jar = await cookies();
   jar.delete("sf-impersonate-org");
 
-  logAudit({
+  await logAudit({
     orgId: session.realOrgId,
     actor: session.memberId,
     action: "impersonate_stop",

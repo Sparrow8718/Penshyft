@@ -1,12 +1,14 @@
 import { listMessages, type StoredMessage } from "@/lib/dev/message-store";
 import { clearAction, sendTestEmail } from "./actions";
 import { revalidatePath } from "next/cache";
+import { assertDevRoutesEnabled } from "@/lib/dev/guard";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Dev Inbox · Penshyft" };
 
 export default async function DevInboxPage() {
+  assertDevRoutesEnabled();
   const messages = await listMessages();
 
   return (

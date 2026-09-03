@@ -128,11 +128,15 @@ export function StaffList({
   }
 
   function handleArchive(id: string) {
-    startTransition(() => archiveStaff(id));
+    startTransition(() => {
+      archiveStaff(id);
+    });
   }
 
   function handleToggleActive(id: string, active: boolean) {
-    startTransition(() => toggleStaffActive(id, !active));
+    startTransition(() => {
+      toggleStaffActive(id, !active);
+    });
   }
 
   return (

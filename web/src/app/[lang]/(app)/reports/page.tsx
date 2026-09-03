@@ -30,6 +30,7 @@ export default async function ReportsPage({
   const locale = await getLocale();
   const session = await requireSession(locale);
   const params = await searchParams;
+  const t = await getTranslations("reports");
 
   const now = new Date();
   const from = params.from ?? getMonday(now);
@@ -48,7 +49,7 @@ export default async function ReportsPage({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-lg font-semibold">Reports</h1>
+      <h1 className="text-lg font-semibold">{t("title")}</h1>
       <ReportView
         from={from}
         to={to}

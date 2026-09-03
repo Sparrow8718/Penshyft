@@ -64,7 +64,7 @@ export function RotaView({
 
   function handleGenerate() {
     startTransition(async () => {
-      await generateRota(siteId, memberId, weekStart);
+      await generateRota(siteId, weekStart);
       router.refresh();
     });
   }
@@ -174,7 +174,7 @@ export function RotaView({
                           <button
                             onClick={(e) => { e.stopPropagation(); startTransition(async () => { await blastShift(shift.id); router.refresh(); }); }}
                             className="ml-auto text-primary hover:text-primary/80"
-                            title="Blast to staff"
+                            title={t("blastToStaff")}
                           >
                             <Send size={10} />
                           </button>
@@ -208,16 +208,16 @@ export function RotaView({
       <Dialog
         open={!!assignDialog}
         onClose={() => setAssignDialog(null)}
-        title={`Assign: ${assignDialog?.roleName ?? ""}`}
+        title={t("assignTitle", { role: assignDialog?.roleName ?? "" })}
       >
         <form onSubmit={handleAssign} className="space-y-4">
           <p className="text-xs text-muted-foreground">
             {assignDialog?.date} · {assignDialog?.startTime.slice(0, 5)}–{assignDialog?.endTime.slice(0, 5)}
           </p>
           <div>
-            <Label htmlFor="rotaStaffId">Staff member</Label>
+            <Label htmlFor="rotaStaffId">{t("staffMember")}</Label>
             <Select id="rotaStaffId" name="staffId" required>
-              <option value="" disabled>Select staff</option>
+              <option value="" disabled>{t("selectStaff")}</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}

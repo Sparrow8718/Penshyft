@@ -13,6 +13,9 @@ function generateToken() {
 }
 
 export async function blastShift(shiftId: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+
   const supa = db();
 
   // Get shift details
@@ -25,13 +28,14 @@ export async function blastShift(shiftId: string) {
   if (!shift) return { error: "Shift not found." };
   if (shift.status !== "open") return { error: "Shift is not open." };
 
-  // Get org_id from site
+  // Get org_id from site and verify it belongs to the caller's org.
   const { data: site } = await supa
     .from("site")
     .select("org_id, name")
     .eq("id", shift.site_id)
     .single();
   if (!site) return { error: "Site not found." };
+  if (site.org_id !== s.orgId) return { error: "Shift not found." };
 
   // Find qualified staff (matching role, optionally area)
   const { data: staffWithRole } = await supa
@@ -90,39 +94,50 @@ export async function blastShift(shiftId: string) {
   const shiftLabel = `${roleName}${areaName ? ` (${areaName})` : ""} — ${shift.date} ${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}`;
 
   let sentCount = 0;
+  const notifier = getNotificationProvider();
 
   for (const staff of toSend) {
     const token = generateToken();
-
-    const { error } = await supa.from("shift_offer").insert({
-      shift_id: shiftId,
-      staff_id: staff.id,
-      token,
-    });
-
-    if (error) continue;
-
     const offerUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/offer/${token}`;
-    const notifier = getNotificationProvider();
 
-    await notifier.sendEmail({
-      to: staff.email!,
-      subject: `Shift available: ${shiftLabel}`,
-      body: shiftOfferEmail({
-        staffName: staff.name,
-        shiftLabel,
-        siteName: site.name,
-        offerUrl,
-      }),
-      orgId: site.org_id,
-      meta: { shiftId, staffId: staff.id, token },
-    });
+    // Insert the offer row first so the emailed token is immediately valid.
+    const { data: offerRow, error } = await supa
+      .from("shift_offer")
+      .insert({ shift_id: shiftId, staff_id: staff.id, token })
+      .select("id")
+      .single();
+    if (error || !offerRow) continue;
+
+    // Send; if it fails, roll the row back so this recipient isn't left with
+    // a phantom "already sent" record blocking a later retry.
+    let ok = false;
+    try {
+      const result = await notifier.sendEmail({
+        to: staff.email!,
+        subject: `Shift available: ${shiftLabel}`,
+        body: shiftOfferEmail({
+          staffName: staff.name,
+          shiftLabel,
+          siteName: site.name,
+          offerUrl,
+        }),
+        orgId: site.org_id,
+        meta: { shiftId, staffId: staff.id, token },
+      });
+      ok = result.ok;
+    } catch {
+      ok = false;
+    }
+
+    if (!ok) {
+      await supa.from("shift_offer").delete().eq("id", offerRow.id);
+      continue;
+    }
 
     sentCount++;
   }
 
-  const s = await getSession();
-  if (s) logAudit({ orgId: s.orgId, actor: s.memberName, action: "offers.blasted", entity: `shift:${shiftId}`, meta: { sentCount } });
+  await logAudit({ orgId: s.orgId, actor: s.memberName, action: "offers.blasted", entity: `shift:${shiftId}`, meta: { sentCount } });
 
   revalidatePath("/shifts");
   revalidatePath("/rota");

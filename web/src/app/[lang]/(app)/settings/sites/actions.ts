@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/server";
-import { checkPlanLimit } from "@/lib/billing/plans";
+import { getSession } from "@/lib/auth/session";
+import { checkPlanLimit } from "@/lib/billing/check-limit";
+import { siteInOrg } from "@/lib/auth/guards";
 
 export async function createSite(formData: FormData) {
-  const orgId = formData.get("orgId") as string;
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  const orgId = s.orgId;
+
   const name = (formData.get("name") as string).trim();
   const address = (formData.get("address") as string)?.trim() || null;
 
@@ -25,14 +30,22 @@ export async function createSite(formData: FormData) {
 }
 
 export async function updateSite(formData: FormData) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+
   const siteId = formData.get("siteId") as string;
   const name = (formData.get("name") as string).trim();
   const address = (formData.get("address") as string)?.trim() || null;
 
   if (!name) return { error: "Name is required." };
+  if (!(await siteInOrg(siteId, s.orgId))) return { error: "Site not found." };
 
   const supa = db();
-  const { error } = await supa.from("site").update({ name, address }).eq("id", siteId);
+  const { error } = await supa
+    .from("site")
+    .update({ name, address })
+    .eq("id", siteId)
+    .eq("org_id", s.orgId);
   if (error) return { error: error.message };
 
   revalidatePath("/settings/sites");
@@ -40,7 +53,12 @@ export async function updateSite(formData: FormData) {
 }
 
 export async function archiveSite(siteId: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await siteInOrg(siteId, s.orgId))) return { error: "Site not found." };
+
   const supa = db();
-  await supa.from("site").update({ archived: true }).eq("id", siteId);
+  await supa.from("site").update({ archived: true }).eq("id", siteId).eq("org_id", s.orgId);
   revalidatePath("/settings/sites");
+  return {};
 }

@@ -73,7 +73,8 @@
     "forgotPassword": "Mot de passe oublié ?",
     "resetPassword": "Réinitialiser le mot de passe",
     "noAccount": "Vous n'avez pas de compte ?",
-    "hasAccount": "Vous avez déjà un compte ?"
+    "hasAccount": "Vous avez déjà un compte ?",
+    "resetLinkSent": "Vérifiez votre e-mail pour le lien de réinitialisation."
   },
   "staff": {
     "title": "Personnel",
@@ -127,6 +128,10 @@
     "noShifts": "Aucun créneau généré. Utilisez le bouton Générer pour créer des créneaux à partir de vos modèles.",
     "generated": "Planning généré avec succès.",
     "unassigned": "Non assigné",
+    "blastToStaff": "Diffuser au personnel",
+    "assignTitle": "Assigner : {role}",
+    "staffMember": "Membre du personnel",
+    "selectStaff": "Sélectionner un membre",
     "mon": "Lun",
     "tue": "Mar",
     "wed": "Mer",
@@ -297,6 +302,34 @@
     "noOrgs": "No organisations found.",
     "backToOrgs": "Back to organisations",
     "areas": "Areas"
+  },
+  "reports": {
+    "title": "Rapports",
+    "from": "Du",
+    "to": "Au",
+    "apply": "Appliquer",
+    "csv": "CSV",
+    "pdf": "PDF",
+    "totalShifts": "Total créneaux",
+    "filled": "Pourvus",
+    "fillRate": "Taux de remplissage",
+    "staffHours": "Heures",
+    "avgResponse": "Réponse moy.",
+    "offersSent": "Offres envoyées",
+    "shiftsSection": "Créneaux",
+    "staffHoursSection": "Heures du personnel",
+    "colDate": "Date",
+    "colTime": "Heure",
+    "colStart": "Début",
+    "colEnd": "Fin",
+    "colRole": "Rôle",
+    "colArea": "Zone",
+    "colStatus": "Statut",
+    "colStaff": "Personnel",
+    "colShifts": "Créneaux",
+    "colHours": "Heures",
+    "noShifts": "Aucun créneau sur cette période.",
+    "pdfTitle": "Rapport de créneaux"
   },
   "placeholder": {
     "comingIn": "Prévu pour {milestone}"

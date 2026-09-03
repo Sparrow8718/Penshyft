@@ -34,75 +34,100 @@ export async function POST(req: NextRequest) {
 
   const db = supaAdmin();
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orgId = session.metadata?.org_id;
-      if (!orgId) break;
+  // Handlers are idempotent (they set absolute state keyed by org / customer),
+  // so Stripe's at-least-once redelivery is safe without a processed-event
+  // table. Any DB write failure returns 500 so Stripe retries the event.
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orgId = session.metadata?.org_id;
+        if (!orgId) break;
 
-      const subscriptionId =
-        typeof session.subscription === "string"
-          ? session.subscription
-          : session.subscription?.id;
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
 
-      const customerId =
-        typeof session.customer === "string"
-          ? session.customer
-          : session.customer?.id;
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
 
-      const stripe = getStripe();
-      let plan = "starter";
-      if (subscriptionId) {
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = sub.items.data[0]?.price?.id;
-        if (priceId && STRIPE_PRICE_MAP[priceId]) {
-          plan = STRIPE_PRICE_MAP[priceId];
+        // Resolve the plan strictly from the subscription's price. Never
+        // default to a plan — a wrong guess under-provisions a paying customer.
+        let plan: string | undefined;
+        if (subscriptionId) {
+          const sub = await getStripe().subscriptions.retrieve(subscriptionId);
+          const priceId = sub.items.data[0]?.price?.id;
+          plan = priceId ? STRIPE_PRICE_MAP[priceId] : undefined;
+          if (!plan) {
+            console.error(
+              `[stripe webhook] Unmapped price on subscription ${subscriptionId} (price ${priceId}); org ${orgId} plan left unchanged. Check STRIPE_PRICE_* env vars.`,
+            );
+          }
         }
-      }
 
-      await db
-        .from("org")
-        .update({
-          plan,
+        const update: {
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          plan?: string;
+        } = {
           stripe_customer_id: customerId ?? null,
           stripe_subscription_id: subscriptionId ?? null,
-        })
-        .eq("id", orgId);
-      break;
+        };
+        if (plan) update.plan = plan;
+
+        const { error } = await db.from("org").update(update).eq("id", orgId);
+        if (error) throw error;
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const sub = event.data.object as Stripe.Subscription;
+        const priceId = sub.items.data[0]?.price?.id;
+        const newPlan = priceId ? STRIPE_PRICE_MAP[priceId] : undefined;
+        if (!newPlan) {
+          if (priceId) {
+            console.error(
+              `[stripe webhook] Unmapped price ${priceId} on subscription.updated; ignoring.`,
+            );
+          }
+          break;
+        }
+
+        const customerId =
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+        if (!customerId) break;
+
+        const { error } = await db
+          .from("org")
+          .update({ plan: newPlan })
+          .eq("stripe_customer_id", customerId);
+        if (error) throw error;
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+        const customerId =
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+        if (!customerId) break;
+
+        const { error } = await db
+          .from("org")
+          .update({
+            plan: "free",
+            stripe_subscription_id: null,
+          })
+          .eq("stripe_customer_id", customerId);
+        if (error) throw error;
+        break;
+      }
     }
-
-    case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
-      const priceId = sub.items.data[0]?.price?.id;
-      const newPlan = priceId ? STRIPE_PRICE_MAP[priceId] : undefined;
-      if (!newPlan) break;
-
-      const customerId =
-        typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-      if (!customerId) break;
-
-      await db
-        .from("org")
-        .update({ plan: newPlan })
-        .eq("stripe_customer_id", customerId);
-      break;
-    }
-
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      const customerId =
-        typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-      if (!customerId) break;
-
-      await db
-        .from("org")
-        .update({
-          plan: "free",
-          stripe_subscription_id: null,
-        })
-        .eq("stripe_customer_id", customerId);
-      break;
-    }
+  } catch (err) {
+    console.error("[stripe webhook] handler failed:", err);
+    return NextResponse.json({ error: "handler failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

@@ -43,7 +43,9 @@ export function SitesList({
   }
 
   function handleArchive(siteId: string) {
-    startTransition(() => archiveSite(siteId));
+    startTransition(() => {
+      archiveSite(siteId);
+    });
   }
 
   return (

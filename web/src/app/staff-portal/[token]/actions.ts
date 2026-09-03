@@ -3,14 +3,20 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/server";
+import { verifyStaffToken } from "@/lib/auth/staff-token";
 import { getNotificationProvider } from "@/lib/providers/notification";
 import { swapRequestedEmail } from "@/lib/emails/templates";
 
 export async function requestSwap(
   shiftId: string,
-  staffId: string,
+  staffToken: string,
   reason: string,
 ) {
+  // Re-validate the staff token server-side; never trust a client-supplied
+  // staffId. The staffId is derived from the signed token.
+  const staffId = verifyStaffToken(staffToken);
+  if (!staffId) return { error: "Invalid or expired link." };
+
   const supa = db();
   const token = randomBytes(24).toString("base64url");
 

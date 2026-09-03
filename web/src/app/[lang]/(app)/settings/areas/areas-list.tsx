@@ -41,7 +41,9 @@ export function AreasList({
   }
 
   function handleArchive(areaId: string) {
-    startTransition(() => archiveArea(areaId));
+    startTransition(() => {
+      archiveArea(areaId);
+    });
   }
 
   const grouped = sites.map((site) => ({

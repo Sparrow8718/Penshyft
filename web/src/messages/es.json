@@ -73,7 +73,8 @@
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "resetPassword": "Restablecer contraseña",
     "noAccount": "¿No tienes cuenta?",
-    "hasAccount": "¿Ya tienes cuenta?"
+    "hasAccount": "¿Ya tienes cuenta?",
+    "resetLinkSent": "Revisa tu correo para el enlace de restablecimiento."
   },
   "staff": {
     "title": "Personal",
@@ -127,6 +128,10 @@
     "noShifts": "No hay turnos generados. Usa el botón Generar para crear turnos desde tus plantillas.",
     "generated": "Turnos generados correctamente.",
     "unassigned": "Sin asignar",
+    "blastToStaff": "Enviar al personal",
+    "assignTitle": "Asignar: {role}",
+    "staffMember": "Miembro del personal",
+    "selectStaff": "Seleccionar personal",
     "mon": "Lun",
     "tue": "Mar",
     "wed": "Mié",
@@ -297,6 +302,34 @@
     "noOrgs": "No organisations found.",
     "backToOrgs": "Back to organisations",
     "areas": "Areas"
+  },
+  "reports": {
+    "title": "Informes",
+    "from": "Desde",
+    "to": "Hasta",
+    "apply": "Aplicar",
+    "csv": "CSV",
+    "pdf": "PDF",
+    "totalShifts": "Total guardias",
+    "filled": "Cubiertas",
+    "fillRate": "Tasa de cobertura",
+    "staffHours": "Horas",
+    "avgResponse": "Resp. media",
+    "offersSent": "Ofertas enviadas",
+    "shiftsSection": "Guardias",
+    "staffHoursSection": "Horas del personal",
+    "colDate": "Fecha",
+    "colTime": "Hora",
+    "colStart": "Inicio",
+    "colEnd": "Fin",
+    "colRole": "Rol",
+    "colArea": "Área",
+    "colStatus": "Estado",
+    "colStaff": "Personal",
+    "colShifts": "Guardias",
+    "colHours": "Horas",
+    "noShifts": "No hay guardias en este rango.",
+    "pdfTitle": "Informe de guardias"
   },
   "placeholder": {
     "comingIn": "Previsto para {milestone}"

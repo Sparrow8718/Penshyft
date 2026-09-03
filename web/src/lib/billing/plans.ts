@@ -1,4 +1,7 @@
-import { db } from "@/lib/db/server";
+// Pure plan constants. No server-only imports here — this module is imported
+// by client components (e.g. the marketing pricing table and billing panel),
+// so it must stay free of the service-role db client. Server-side limit
+// checking lives in ./check-limit.ts.
 
 export const PLAN_LIMITS = {
   free: { sites: 1, areas: 1, staff: 15, price: 0, label: "Free", stripePriceId: null as string | null },
@@ -17,56 +20,3 @@ export const STRIPE_PRICE_MAP: Record<string, PlanKey> = Object.fromEntries(
     .filter(([, v]) => v.stripePriceId)
     .map(([k, v]) => [v.stripePriceId, k]),
 );
-
-export async function checkPlanLimit(
-  orgId: string,
-  resource: "staff" | "sites" | "areas",
-): Promise<{ allowed: boolean; current: number; max: number; plan: PlanKey }> {
-  const supa = db();
-
-  const { data: org } = await supa
-    .from("org")
-    .select("plan")
-    .eq("id", orgId)
-    .single();
-
-  const plan = (org?.plan ?? "free") as PlanKey;
-  const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
-  const max = limits[resource];
-
-  let current = 0;
-
-  if (resource === "staff") {
-    const { count } = await supa
-      .from("staff")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("active", true)
-      .eq("archived", false);
-    current = count ?? 0;
-  } else if (resource === "sites") {
-    const { count } = await supa
-      .from("site")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("archived", false);
-    current = count ?? 0;
-  } else if (resource === "areas") {
-    const { data: sites } = await supa
-      .from("site")
-      .select("id")
-      .eq("org_id", orgId)
-      .eq("archived", false);
-    const siteIds = (sites ?? []).map((s) => s.id);
-    if (siteIds.length > 0) {
-      const { count } = await supa
-        .from("area")
-        .select("id", { count: "exact", head: true })
-        .in("site_id", siteIds)
-        .eq("archived", false);
-      current = count ?? 0;
-    }
-  }
-
-  return { allowed: current < max, current, max, plan };
-}

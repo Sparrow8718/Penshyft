@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/server";
+import { requireSession } from "@/lib/auth/session";
 
 export async function updateOrg(formData: FormData) {
-  const orgId = formData.get("orgId") as string;
+  const session = await requireSession();
+
   const name = (formData.get("name") as string).trim();
   const industry = formData.get("industry") as string;
   const areaLabel = (formData.get("areaLabel") as string).trim();
@@ -16,7 +18,7 @@ export async function updateOrg(formData: FormData) {
   const { error } = await supa
     .from("org")
     .update({ name, industry, area_label: areaLabel })
-    .eq("id", orgId);
+    .eq("id", session.orgId);
 
   if (error) return { error: error.message };
 

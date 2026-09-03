@@ -111,7 +111,7 @@ export function OnboardingWizard({ locale }: { locale: string }) {
                   placeholder="+44 7700 900000"
                 />
               </div>
-              {msg && <p className="text-sm text-destructive">{msg}</p>}
+              {msg && <p className="text-sm text-danger">{msg}</p>}
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -174,7 +174,7 @@ export function OnboardingWizard({ locale }: { locale: string }) {
                   />
                 </div>
               </div>
-              {msg && <p className="text-sm text-destructive">{msg}</p>}
+              {msg && <p className="text-sm text-danger">{msg}</p>}
               <div className="flex gap-3">
                 <button
                   type="button"

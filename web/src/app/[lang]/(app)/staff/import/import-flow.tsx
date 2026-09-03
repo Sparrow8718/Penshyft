@@ -60,7 +60,7 @@ export function ImportFlow({ orgId, locale }: { orgId: string; locale: string })
       }));
 
     startTransition(async () => {
-      const res = await importStaffBulk(orgId, validRows);
+      const res = await importStaffBulk(validRows);
       setResult(res);
       setStep("done");
     });

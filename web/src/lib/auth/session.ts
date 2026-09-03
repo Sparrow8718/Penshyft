@@ -63,9 +63,9 @@ export async function getSession(): Promise<Session | null> {
     if (targetOrg) {
       activeOrgId = targetOrg.id;
       activeOrgName = targetOrg.name;
-      activeOrgPlan = targetOrg.plan;
-      activeOrgIndustry = targetOrg.industry;
-      activeOrgAreaLabel = targetOrg.area_label;
+      activeOrgPlan = targetOrg.plan ?? "free";
+      activeOrgIndustry = targetOrg.industry ?? "other";
+      activeOrgAreaLabel = targetOrg.area_label ?? "Area";
       isImpersonating = true;
     }
   }

@@ -63,11 +63,15 @@ export function TemplatesList({
   }
 
   function handleDelete(id: string) {
-    startTransition(() => deleteTemplate(id));
+    startTransition(() => {
+      deleteTemplate(id);
+    });
   }
 
   function handleToggle(id: string, active: boolean) {
-    startTransition(() => toggleTemplate(id, !active));
+    startTransition(() => {
+      toggleTemplate(id, !active);
+    });
   }
 
   const grouped = DAYS.map((dayKey, i) => ({

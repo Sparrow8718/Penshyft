@@ -21,7 +21,7 @@ export async function addStaffOnboarding(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  logAudit({
+  await logAudit({
     action: "staff_created",
     actor: session.memberId,
     orgId: session.orgId,
@@ -62,7 +62,7 @@ export async function createShiftOnboarding(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  logAudit({
+  await logAudit({
     action: "shift_created",
     actor: session.memberId,
     orgId: session.orgId,

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
+import { staffInOrg } from "@/lib/auth/guards";
 
 export async function toggleAvailability(
   staffId: string,
@@ -9,6 +11,10 @@ export async function toggleAvailability(
   available: boolean,
   notes?: string,
 ) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await staffInOrg(staffId, s.orgId))) return { error: "Staff member not found." };
+
   const supa = db();
 
   await supa.from("staff_availability").upsert(
@@ -22,6 +28,7 @@ export async function toggleAvailability(
   );
 
   revalidatePath("/staff/availability");
+  return {};
 }
 
 export async function bulkSetAvailability(
@@ -29,6 +36,10 @@ export async function bulkSetAvailability(
   dates: string[],
   available: boolean,
 ) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await staffInOrg(staffId, s.orgId))) return { error: "Staff member not found." };
+
   const supa = db();
 
   const rows = dates.map((date) => ({
@@ -41,4 +52,5 @@ export async function bulkSetAvailability(
   await supa.from("staff_availability").upsert(rows, { onConflict: "staff_id,date" });
 
   revalidatePath("/staff/availability");
+  return {};
 }

@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 
@@ -54,6 +55,7 @@ export function ReportView({
   shifts: ShiftRow[];
   staffHours: StaffHoursRow[];
 }) {
+  const t = useTranslations("reports");
   const router = useRouter();
   const pathname = usePathname();
   const [dateFrom, setDateFrom] = useState(from);
@@ -86,23 +88,23 @@ export function ReportView({
 
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Shift Report", 14, 20);
+    doc.text(t("pdfTitle"), 14, 20);
     doc.setFontSize(10);
-    doc.text(`${from} to ${to}`, 14, 28);
+    doc.text(`${from} — ${to}`, 14, 28);
 
     doc.setFontSize(11);
-    doc.text(`Total shifts: ${totalShifts}`, 14, 40);
-    doc.text(`Filled: ${filledShifts} (${fillRate}%)`, 14, 47);
-    doc.text(`Staff hours: ${totalStaffHours}`, 14, 54);
+    doc.text(`${t("totalShifts")}: ${totalShifts}`, 14, 40);
+    doc.text(`${t("filled")}: ${filledShifts} (${fillRate}%)`, 14, 47);
+    doc.text(`${t("staffHours")}: ${totalStaffHours}`, 14, 54);
     doc.text(
-      `Avg response: ${avgResponseMinutes != null ? `${avgResponseMinutes} min` : "N/A"}`,
+      `${t("avgResponse")}: ${avgResponseMinutes != null ? `${avgResponseMinutes} min` : "—"}`,
       14,
       61,
     );
 
     autoTable(doc, {
       startY: 72,
-      head: [["Date", "Start", "End", "Role", "Area", "Status", "Staff"]],
+      head: [[t("colDate"), t("colStart"), t("colEnd"), t("colRole"), t("colArea"), t("colStatus"), t("colStaff")]],
       body: shifts.map((s) => [
         s.date,
         s.startTime,
@@ -133,15 +135,15 @@ export function ReportView({
   }
 
   const stats = [
-    { label: "Total shifts", value: totalShifts },
-    { label: "Filled", value: filledShifts },
-    { label: "Fill rate", value: `${fillRate}%` },
-    { label: "Staff hours", value: totalStaffHours },
+    { label: t("totalShifts"), value: totalShifts },
+    { label: t("filled"), value: filledShifts },
+    { label: t("fillRate"), value: `${fillRate}%` },
+    { label: t("staffHours"), value: totalStaffHours },
     {
-      label: "Avg response",
+      label: t("avgResponse"),
       value: avgResponseMinutes != null ? `${avgResponseMinutes}m` : "—",
     },
-    { label: "Offers sent", value: offerMetrics.totalOffers },
+    { label: t("offersSent"), value: offerMetrics.totalOffers },
   ];
 
   return (
@@ -149,7 +151,7 @@ export function ReportView({
       {/* Date range */}
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">From</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("from")}</label>
           <input
             type="date"
             value={dateFrom}
@@ -158,7 +160,7 @@ export function ReportView({
           />
         </div>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">To</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("to")}</label>
           <input
             type="date"
             value={dateTo}
@@ -167,14 +169,14 @@ export function ReportView({
           />
         </div>
         <Button variant="secondary" className="h-8 text-xs" onClick={applyRange}>
-          Apply
+          {t("apply")}
         </Button>
         <div className="ml-auto flex gap-2">
           <Button variant="ghost" className="h-8 text-xs" onClick={exportCsv}>
-            <Download size={13} /> CSV
+            <Download size={13} /> {t("csv")}
           </Button>
           <Button variant="ghost" className="h-8 text-xs" onClick={exportPdf}>
-            <FileText size={13} /> PDF
+            <FileText size={13} /> {t("pdf")}
           </Button>
         </div>
       </div>
@@ -194,17 +196,17 @@ export function ReportView({
 
       {/* Shifts table */}
       <div>
-        <h2 className="text-sm font-semibold mb-2">Shifts</h2>
+        <h2 className="text-sm font-semibold mb-2">{t("shiftsSection")}</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-xs">
             <thead className="bg-accent/50">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Date</th>
-                <th className="px-3 py-2 text-left font-medium">Time</th>
-                <th className="px-3 py-2 text-left font-medium">Role</th>
-                <th className="px-3 py-2 text-left font-medium">Area</th>
-                <th className="px-3 py-2 text-left font-medium">Status</th>
-                <th className="px-3 py-2 text-left font-medium">Staff</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colDate")}</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colTime")}</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colRole")}</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colArea")}</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colStatus")}</th>
+                <th className="px-3 py-2 text-left font-medium">{t("colStaff")}</th>
               </tr>
             </thead>
             <tbody>
@@ -233,7 +235,7 @@ export function ReportView({
               {shifts.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                    No shifts in this range.
+                    {t("noShifts")}
                   </td>
                 </tr>
               )}
@@ -245,14 +247,14 @@ export function ReportView({
       {/* Staff hours table */}
       {staffHours.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-2">Staff Hours</h2>
+          <h2 className="text-sm font-semibold mb-2">{t("staffHoursSection")}</h2>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-xs">
               <thead className="bg-accent/50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">Staff</th>
-                  <th className="px-3 py-2 text-right font-medium">Shifts</th>
-                  <th className="px-3 py-2 text-right font-medium">Hours</th>
+                  <th className="px-3 py-2 text-left font-medium">{t("colStaff")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("colShifts")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("colHours")}</th>
                 </tr>
               </thead>
               <tbody>

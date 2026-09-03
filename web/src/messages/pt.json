@@ -73,7 +73,8 @@
     "forgotPassword": "Esqueceu a palavra-passe?",
     "resetPassword": "Repor palavra-passe",
     "noAccount": "Não tem conta?",
-    "hasAccount": "Já tem conta?"
+    "hasAccount": "Já tem conta?",
+    "resetLinkSent": "Verifique o seu email para o link de redefinição."
   },
   "staff": {
     "title": "Pessoal",
@@ -127,6 +128,10 @@
     "noShifts": "Nenhum turno gerado. Use o botão Gerar para criar turnos a partir dos seus modelos.",
     "generated": "Escala gerada com sucesso.",
     "unassigned": "Não atribuído",
+    "blastToStaff": "Enviar ao pessoal",
+    "assignTitle": "Atribuir: {role}",
+    "staffMember": "Membro do pessoal",
+    "selectStaff": "Selecionar pessoal",
     "mon": "Seg",
     "tue": "Ter",
     "wed": "Qua",
@@ -297,6 +302,34 @@
     "noOrgs": "Nenhuma organização encontrada.",
     "backToOrgs": "Voltar às organizações",
     "areas": "Áreas"
+  },
+  "reports": {
+    "title": "Relatórios",
+    "from": "De",
+    "to": "Até",
+    "apply": "Aplicar",
+    "csv": "CSV",
+    "pdf": "PDF",
+    "totalShifts": "Total turnos",
+    "filled": "Preenchidos",
+    "fillRate": "Taxa de preenchimento",
+    "staffHours": "Horas",
+    "avgResponse": "Resp. média",
+    "offersSent": "Ofertas enviadas",
+    "shiftsSection": "Turnos",
+    "staffHoursSection": "Horas do pessoal",
+    "colDate": "Data",
+    "colTime": "Hora",
+    "colStart": "Início",
+    "colEnd": "Fim",
+    "colRole": "Função",
+    "colArea": "Área",
+    "colStatus": "Estado",
+    "colStaff": "Pessoal",
+    "colShifts": "Turnos",
+    "colHours": "Horas",
+    "noShifts": "Sem turnos neste período.",
+    "pdfTitle": "Relatório de turnos"
   },
   "placeholder": {
     "comingIn": "Previsto para {milestone}"

@@ -58,7 +58,9 @@ export function RolesList({
   }
 
   function handleArchive(roleId: string) {
-    startTransition(() => archiveRole(roleId));
+    startTransition(() => {
+      archiveRole(roleId);
+    });
   }
 
   return (

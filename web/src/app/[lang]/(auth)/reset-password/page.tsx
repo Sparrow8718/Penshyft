@@ -30,7 +30,7 @@ export default function ResetPasswordPage() {
       </h2>
       {sent ? (
         <p className="text-sm text-center text-muted-foreground">
-          Check your email for a reset link.
+          {t("resetLinkSent")}
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

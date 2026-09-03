@@ -73,7 +73,8 @@
     "forgotPassword": "Forgot password?",
     "resetPassword": "Reset password",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "resetLinkSent": "Check your email for a reset link."
   },
   "staff": {
     "title": "Staff",
@@ -127,6 +128,10 @@
     "noShifts": "No shifts generated yet. Use the Generate button to create shifts from your templates.",
     "generated": "Rota generated successfully.",
     "unassigned": "Unassigned",
+    "blastToStaff": "Blast to staff",
+    "assignTitle": "Assign: {role}",
+    "staffMember": "Staff member",
+    "selectStaff": "Select staff",
     "mon": "Mon",
     "tue": "Tue",
     "wed": "Wed",
@@ -297,6 +302,34 @@
     "noOrgs": "No organisations found.",
     "backToOrgs": "Back to organisations",
     "areas": "Areas"
+  },
+  "reports": {
+    "title": "Reports",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "csv": "CSV",
+    "pdf": "PDF",
+    "totalShifts": "Total shifts",
+    "filled": "Filled",
+    "fillRate": "Fill rate",
+    "staffHours": "Staff hours",
+    "avgResponse": "Avg response",
+    "offersSent": "Offers sent",
+    "shiftsSection": "Shifts",
+    "staffHoursSection": "Staff Hours",
+    "colDate": "Date",
+    "colTime": "Time",
+    "colStart": "Start",
+    "colEnd": "End",
+    "colRole": "Role",
+    "colArea": "Area",
+    "colStatus": "Status",
+    "colStaff": "Staff",
+    "colShifts": "Shifts",
+    "colHours": "Hours",
+    "noShifts": "No shifts in this range.",
+    "pdfTitle": "Shift Report"
   },
   "placeholder": {
     "comingIn": "Coming in {milestone}"

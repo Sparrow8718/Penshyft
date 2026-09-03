@@ -1,7 +1,11 @@
-"use server";
+import "server-only";
 
 import { db } from "./server";
 
+// Plain server-only helper — NOT a server action. It must never be marked
+// "use server", or it becomes an independently POST-able endpoint that would
+// let a caller forge audit rows with arbitrary org_id/actor/action. Callers
+// derive orgId/actor from the session and should `await` this.
 export async function logAudit(args: {
   orgId: string;
   actor: string;

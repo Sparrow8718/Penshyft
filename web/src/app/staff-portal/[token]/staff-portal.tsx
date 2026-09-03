@@ -36,7 +36,7 @@ export function StaffPortal({
     setError(null);
     setSuccess(null);
     startTransition(async () => {
-      const res = await requestSwap(shiftId, staffId, reason);
+      const res = await requestSwap(shiftId, staffToken, reason);
       if (res?.error) {
         setError(res.error);
       } else {

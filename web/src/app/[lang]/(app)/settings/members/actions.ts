@@ -70,7 +70,7 @@ export async function inviteMember(formData: FormData) {
     orgId: s.orgId,
   });
 
-  logAudit({
+  await logAudit({
     orgId: s.orgId,
     actor: s.memberName,
     action: "member.invited",
@@ -97,7 +97,7 @@ export async function changeRole(memberId: string, newRole: string) {
 
   if (error) return { error: error.message };
 
-  logAudit({
+  await logAudit({
     orgId: s.orgId,
     actor: s.memberName,
     action: "member.role_changed",
@@ -123,7 +123,7 @@ export async function deactivateMember(memberId: string) {
 
   if (error) return { error: error.message };
 
-  logAudit({
+  await logAudit({
     orgId: s.orgId,
     actor: s.memberName,
     action: "member.deactivated",

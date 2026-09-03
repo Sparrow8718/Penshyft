@@ -15,6 +15,7 @@ type Usage = {
 const PLAN_KEYS: PlanKey[] = ["free", "starter", "professional"];
 
 function ProgressBar({ current, max }: { current: number; max: number }) {
+  const t = useTranslations("billing");
   const pct = max === 0 ? 0 : Math.min((current / max) * 100, 100);
   const atLimit = current >= max;
 
@@ -25,13 +26,13 @@ function ProgressBar({ current, max }: { current: number; max: number }) {
           {current} / {max}
         </span>
         {atLimit && (
-          <span className="text-destructive font-medium">Limit reached</span>
+          <span className="text-danger font-medium">{t("limitReached")}</span>
         )}
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
-            atLimit ? "bg-destructive" : "bg-primary"
+            atLimit ? "bg-danger" : "bg-primary"
           }`}
           style={{ width: `${pct}%` }}
         />
