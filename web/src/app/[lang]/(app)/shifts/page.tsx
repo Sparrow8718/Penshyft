@@ -17,37 +17,48 @@ export default async function ShiftsPage() {
   const supa = db();
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: shifts } = await supa
-    .from("shift")
-    .select(
-      "id, date, start_time, end_time, status, notes, source, area_id, role_id, filled_by, site_id, role:role_id (name, colour), area:area_id (name), assignee:filled_by (name)",
-    )
-    .eq("site_id", session.siteId)
-    .gte("date", today)
-    .order("date")
-    .order("start_time");
-
-  const { data: roles } = await supa
-    .from("role")
-    .select("id, name, colour")
-    .eq("org_id", session.orgId)
-    .eq("archived", false)
-    .order("name");
-
-  const { data: areas } = await supa
-    .from("area")
-    .select("id, name")
-    .eq("site_id", session.siteId)
-    .eq("archived", false)
-    .order("name");
-
-  const { data: staffList } = await supa
-    .from("staff")
-    .select("id, name")
-    .eq("org_id", session.orgId)
-    .eq("active", true)
-    .eq("archived", false)
-    .order("name");
+  const [
+    { data: shifts },
+    { data: roles },
+    { data: areas },
+    { data: staffList },
+    { data: patterns },
+  ] = await Promise.all([
+    supa
+      .from("shift")
+      .select(
+        "id, date, start_time, end_time, status, notes, source, area_id, role_id, filled_by, site_id, pattern_id, role:role_id (name, colour), area:area_id (name), assignee:filled_by (name)",
+      )
+      .eq("site_id", session.siteId)
+      .gte("date", today)
+      .order("date")
+      .order("start_time"),
+    supa
+      .from("role")
+      .select("id, name, colour")
+      .eq("org_id", session.orgId)
+      .eq("archived", false)
+      .order("name"),
+    supa
+      .from("area")
+      .select("id, name")
+      .eq("site_id", session.siteId)
+      .eq("archived", false)
+      .order("name"),
+    supa
+      .from("staff")
+      .select("id, name")
+      .eq("org_id", session.orgId)
+      .eq("active", true)
+      .eq("archived", false)
+      .order("name"),
+    supa
+      .from("shift_pattern")
+      .select(
+        "id, weekdays, start_time, end_time, start_date, end_date, min_staff, auto_generate, active, notes, last_generated_to, role_id, area_id, role:role_id (name, colour), area:area_id (name)",
+      )
+      .eq("site_id", session.siteId),
+  ]);
 
   // Load offer counts per shift
   const shiftIds = (shifts ?? []).map((s) => s.id);
@@ -69,7 +80,7 @@ export default async function ShiftsPage() {
     }
   }
 
-  const enriched = (shifts ?? []).map((row) => {
+  const enrichedShifts = (shifts ?? []).map((row) => {
     const role = Array.isArray(row.role) ? row.role[0] : row.role;
     const area = Array.isArray(row.area) ? row.area[0] : row.area;
     const assignee = Array.isArray(row.assignee) ? row.assignee[0] : row.assignee;
@@ -88,6 +99,7 @@ export default async function ShiftsPage() {
       areaName: area?.name ?? null,
       filledBy: row.filled_by,
       assigneeName: assignee?.name ?? null,
+      patternId: row.pattern_id,
       offerCount: offers.total,
       offerPending: offers.pending,
       offerAccepted: offers.accepted,
@@ -95,9 +107,38 @@ export default async function ShiftsPage() {
     };
   });
 
+  // Build pattern data with shift counts
+  const enrichedPatterns = (patterns ?? []).map((p) => {
+    const role = Array.isArray(p.role) ? p.role[0] : p.role;
+    const area = Array.isArray(p.area) ? p.area[0] : p.area;
+    const patternShifts = enrichedShifts.filter((s) => s.patternId === p.id);
+    return {
+      id: p.id,
+      weekdays: p.weekdays as number[],
+      startTime: p.start_time,
+      endTime: p.end_time,
+      startDate: p.start_date,
+      endDate: p.end_date,
+      minStaff: p.min_staff,
+      autoGenerate: p.auto_generate,
+      active: p.active,
+      roleId: p.role_id,
+      roleName: role?.name ?? "—",
+      roleColour: role?.colour ?? null,
+      areaId: p.area_id,
+      areaName: area?.name ?? null,
+      notes: p.notes,
+      lastGeneratedTo: p.last_generated_to,
+      totalShifts: patternShifts.length,
+      openShifts: patternShifts.filter((s) => s.status === "open").length,
+      filledShifts: patternShifts.filter((s) => s.status === "filled").length,
+    };
+  });
+
   return (
     <ShiftsList
-      shifts={enriched}
+      shifts={enrichedShifts}
+      patterns={enrichedPatterns}
       roles={roles ?? []}
       areas={areas ?? []}
       staff={staffList ?? []}

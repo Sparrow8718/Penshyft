@@ -65,6 +65,19 @@ export async function areaInOrg(areaId: string, orgId: string): Promise<boolean>
   return allAreasInOrg([areaId], orgId);
 }
 
+export async function patternInOrg(patternId: string, orgId: string): Promise<boolean> {
+  if (!patternId) return false;
+  const siteIds = await getOrgSiteIds(orgId);
+  if (siteIds.length === 0) return false;
+  const { data } = await db()
+    .from("shift_pattern")
+    .select("id")
+    .eq("id", patternId)
+    .in("site_id", siteIds)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function shiftInOrg(shiftId: string, orgId: string): Promise<boolean> {
   if (!shiftId) return false;
   const siteIds = await getOrgSiteIds(orgId);

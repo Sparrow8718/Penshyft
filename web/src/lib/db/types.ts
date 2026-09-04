@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -7,30 +7,10 @@
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -62,79 +42,6 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "site"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      availability_request: {
-        Row: {
-          id: string
-          staff_id: string
-          org_id: string
-          request_type: string
-          date: string | null
-          start_time: string | null
-          end_time: string | null
-          weekday: number | null
-          reason: string | null
-          status: string
-          resolved_by: string | null
-          resolved_at: string | null
-          manager_note: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          staff_id: string
-          org_id: string
-          request_type: string
-          date?: string | null
-          start_time?: string | null
-          end_time?: string | null
-          weekday?: number | null
-          reason?: string | null
-          status?: string
-          resolved_by?: string | null
-          resolved_at?: string | null
-          manager_note?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          staff_id?: string
-          org_id?: string
-          request_type?: string
-          date?: string | null
-          start_time?: string | null
-          end_time?: string | null
-          weekday?: number | null
-          reason?: string | null
-          status?: string
-          resolved_by?: string | null
-          resolved_at?: string | null
-          manager_note?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "availability_request_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "availability_request_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "org"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "availability_request_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "member"
             referencedColumns: ["id"]
           },
         ]
@@ -173,6 +80,79 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "org"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_request: {
+        Row: {
+          created_at: string
+          date: string | null
+          end_time: string | null
+          id: string
+          manager_note: string | null
+          org_id: string
+          reason: string | null
+          request_type: string
+          resolved_at: string | null
+          resolved_by: string | null
+          staff_id: string
+          start_time: string | null
+          status: string
+          weekday: number | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          end_time?: string | null
+          id?: string
+          manager_note?: string | null
+          org_id: string
+          reason?: string | null
+          request_type: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staff_id: string
+          start_time?: string | null
+          status?: string
+          weekday?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          end_time?: string | null
+          id?: string
+          manager_note?: string | null
+          org_id?: string
+          reason?: string | null
+          request_type?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staff_id?: string
+          start_time?: string | null
+          status?: string
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_request_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_request_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_request_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
         ]
@@ -235,44 +215,6 @@ export type Database = {
           },
         ]
       }
-      notification_pref: {
-        Row: {
-          id: string
-          member_id: string
-          channel: string
-          category: string
-          enabled: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          member_id: string
-          channel?: string
-          category: string
-          enabled?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          member_id?: string
-          channel?: string
-          category?: string
-          enabled?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_pref_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "member"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       member: {
         Row: {
           auth_user_id: string | null
@@ -314,6 +256,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "member_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_org_id_fkey"
             columns: ["org_id"]
@@ -367,10 +316,50 @@ export type Database = {
           },
         ]
       }
+      notification_pref: {
+        Row: {
+          category: string
+          channel: string
+          created_at: string
+          enabled: boolean
+          id: string
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_pref_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org: {
         Row: {
           area_label: string
           created_at: string
+          generation_horizon_unit: string
+          generation_horizon_value: number
           id: string
           industry: string
           logo_url: string | null
@@ -383,6 +372,8 @@ export type Database = {
         Insert: {
           area_label?: string
           created_at?: string
+          generation_horizon_unit?: string
+          generation_horizon_value?: number
           id?: string
           industry?: string
           logo_url?: string | null
@@ -395,6 +386,8 @@ export type Database = {
         Update: {
           area_label?: string
           created_at?: string
+          generation_horizon_unit?: string
+          generation_horizon_value?: number
           id?: string
           industry?: string
           logo_url?: string | null
@@ -490,6 +483,7 @@ export type Database = {
           filled_by: string | null
           id: string
           notes: string | null
+          pattern_id: string | null
           role_id: string
           rota_run_id: string | null
           site_id: string
@@ -506,6 +500,7 @@ export type Database = {
           filled_by?: string | null
           id?: string
           notes?: string | null
+          pattern_id?: string | null
           role_id: string
           rota_run_id?: string | null
           site_id: string
@@ -522,6 +517,7 @@ export type Database = {
           filled_by?: string | null
           id?: string
           notes?: string | null
+          pattern_id?: string | null
           role_id?: string
           rota_run_id?: string | null
           site_id?: string
@@ -542,6 +538,13 @@ export type Database = {
             columns: ["filled_by"]
             isOneToOne: false
             referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "shift_pattern"
             referencedColumns: ["id"]
           },
           {
@@ -612,50 +615,143 @@ export type Database = {
           },
         ]
       }
-      shift_swap: {
+      shift_pattern: {
         Row: {
-          id: string
-          shift_id: string
-          requester_staff_id: string
-          target_staff_id: string | null
-          target_shift_id: string | null
-          status: string
-          reason: string | null
-          token: string
-          manager_note: string | null
+          active: boolean
+          area_id: string | null
+          auto_generate: boolean
           created_at: string
-          resolved_at: string | null
-          resolved_by: string | null
+          end_date: string | null
+          end_time: string
+          id: string
+          last_generated_to: string | null
+          min_staff: number
+          notes: string | null
+          role_id: string
+          site_id: string
+          start_date: string
+          start_time: string
+          updated_at: string
+          weekdays: number[]
         }
         Insert: {
-          id?: string
-          shift_id: string
-          requester_staff_id: string
-          target_staff_id?: string | null
-          target_shift_id?: string | null
-          status?: string
-          reason?: string | null
-          token: string
-          manager_note?: string | null
+          active?: boolean
+          area_id?: string | null
+          auto_generate?: boolean
           created_at?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
+          end_date?: string | null
+          end_time: string
+          id?: string
+          last_generated_to?: string | null
+          min_staff?: number
+          notes?: string | null
+          role_id: string
+          site_id: string
+          start_date: string
+          start_time: string
+          updated_at?: string
+          weekdays: number[]
         }
         Update: {
-          id?: string
-          shift_id?: string
-          requester_staff_id?: string
-          target_staff_id?: string | null
-          target_shift_id?: string | null
-          status?: string
-          reason?: string | null
-          token?: string
-          manager_note?: string | null
+          active?: boolean
+          area_id?: string | null
+          auto_generate?: boolean
           created_at?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
+          end_date?: string | null
+          end_time?: string
+          id?: string
+          last_generated_to?: string | null
+          min_staff?: number
+          notes?: string | null
+          role_id?: string
+          site_id?: string
+          start_date?: string
+          start_time?: string
+          updated_at?: string
+          weekdays?: number[]
         }
         Relationships: [
+          {
+            foreignKeyName: "shift_pattern_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "area"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pattern_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pattern_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "site"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_swap: {
+        Row: {
+          created_at: string
+          id: string
+          manager_note: string | null
+          reason: string | null
+          requester_staff_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          shift_id: string
+          status: string
+          target_shift_id: string | null
+          target_staff_id: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manager_note?: string | null
+          reason?: string | null
+          requester_staff_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          shift_id: string
+          status?: string
+          target_shift_id?: string | null
+          target_staff_id?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_note?: string | null
+          reason?: string | null
+          requester_staff_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          shift_id?: string
+          status?: string
+          target_shift_id?: string | null
+          target_staff_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_swap_requester_staff_id_fkey"
+            columns: ["requester_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shift_swap_shift_id_fkey"
             columns: ["shift_id"]
@@ -664,8 +760,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requester_staff_id_fkey"
-            columns: ["requester_staff_id"]
+            foreignKeyName: "shift_swap_target_shift_id_fkey"
+            columns: ["target_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shift"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_target_staff_id_fkey"
+            columns: ["target_staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
@@ -679,10 +782,10 @@ export type Database = {
           created_at: string
           end_time: string
           id: string
-          min_staff: number
+          max_hours: number | null
           max_staff: number
           min_hours: number | null
-          max_hours: number | null
+          min_staff: number
           role_id: string
           site_id: string
           start_time: string
@@ -694,10 +797,10 @@ export type Database = {
           created_at?: string
           end_time: string
           id?: string
-          min_staff?: number
+          max_hours?: number | null
           max_staff?: number
           min_hours?: number | null
-          max_hours?: number | null
+          min_staff?: number
           role_id: string
           site_id: string
           start_time: string
@@ -709,10 +812,10 @@ export type Database = {
           created_at?: string
           end_time?: string
           id?: string
-          min_staff?: number
+          max_hours?: number | null
           max_staff?: number
           min_hours?: number | null
-          max_hours?: number | null
+          min_staff?: number
           role_id?: string
           site_id?: string
           start_time?: string
@@ -735,38 +838,6 @@ export type Database = {
           },
           {
             foreignKeyName: "shift_template_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "site"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      site_blocked_date: {
-        Row: {
-          id: string
-          site_id: string
-          date: string
-          reason: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          site_id: string
-          date: string
-          reason?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          site_id?: string
-          date?: string
-          reason?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "site_blocked_date_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "site"
@@ -814,6 +885,38 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "org"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_blocked_date: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          reason: string | null
+          site_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          reason?: string | null
+          site_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          reason?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_blocked_date_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "site"
             referencedColumns: ["id"]
           },
         ]
@@ -901,6 +1004,41 @@ export type Database = {
           },
         ]
       }
+      staff_availability: {
+        Row: {
+          available: boolean
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          staff_id: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          staff_id: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_availability_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_role: {
         Row: {
           role_id: string
@@ -924,41 +1062,6 @@ export type Database = {
           },
           {
             foreignKeyName: "staff_role_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_availability: {
-        Row: {
-          id: string
-          staff_id: string
-          date: string
-          available: boolean
-          notes: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          staff_id: string
-          date: string
-          available?: boolean
-          notes?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          staff_id?: string
-          date?: string
-          available?: boolean
-          notes?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_availability_staff_id_fkey"
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
@@ -1043,12 +1146,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1072,11 +1175,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1097,11 +1200,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1122,11 +1225,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1139,11 +1242,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1153,11 +1256,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
