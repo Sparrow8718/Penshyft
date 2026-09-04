@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Archive, Search, UserX, UserCheck, Upload, Calendar } from "lucide-react";
+import { Plus, Pencil, Archive, Search, UserX, UserCheck, Upload, Calendar, ClipboardList } from "lucide-react";
 import {
   createStaff,
   updateStaff,
@@ -31,6 +31,9 @@ type StaffMember = {
   archived: boolean;
   roles: RoleRef[];
   areas: AreaRef[];
+  max_hours_per_week: number | null;
+  max_hours_per_day: number | null;
+  max_days_per_week: number | null;
 };
 
 type AvailableRole = { id: string; name: string; colour: string | null };
@@ -147,6 +150,12 @@ export function StaffList({
           <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href={`/${locale}/staff/requests`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition"
+          >
+            <ClipboardList size={14} /> {t("requests")}
+          </Link>
           <Link
             href={`/${locale}/staff/availability`}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition"
@@ -296,6 +305,46 @@ export function StaffList({
               name="notes"
               defaultValue={editing?.notes ?? ""}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">{t("workConstraints")}</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="maxHoursWeek" className="text-xs">{t("maxHoursWeek")}</Label>
+                <Input
+                  id="maxHoursWeek"
+                  name="maxHoursPerWeek"
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  defaultValue={editing?.max_hours_per_week ?? ""}
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxHoursDay" className="text-xs">{t("maxHoursDay")}</Label>
+                <Input
+                  id="maxHoursDay"
+                  name="maxHoursPerDay"
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  defaultValue={editing?.max_hours_per_day ?? ""}
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxDaysWeek" className="text-xs">{t("maxDaysWeek")}</Label>
+                <Input
+                  id="maxDaysWeek"
+                  name="maxDaysPerWeek"
+                  type="number"
+                  step={1}
+                  min={1}
+                  max={7}
+                  defaultValue={editing?.max_days_per_week ?? ""}
+                />
+              </div>
+            </div>
           </div>
 
           {roles.length > 0 && (

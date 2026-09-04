@@ -8,8 +8,8 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Archive } from "lucide-react";
-import { createArea, updateArea, archiveArea } from "./actions";
+import { Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { createArea, updateArea, archiveArea, unarchiveArea } from "./actions";
 
 type Area = { id: string; name: string; archived: boolean; site_id: string };
 type Site = { id: string; name: string };
@@ -24,8 +24,10 @@ export function AreasList({
   areaLabel: string;
 }) {
   const tc = useTranslations("common");
+  const ta = useTranslations("areas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Area | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Area | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -40,9 +42,17 @@ export function AreasList({
     });
   }
 
-  function handleArchive(areaId: string) {
+  function confirmArchive() {
+    if (!archiveTarget) return;
+    startTransition(async () => {
+      await archiveArea(archiveTarget.id);
+      setArchiveTarget(null);
+    });
+  }
+
+  function handleUnarchive(areaId: string) {
     startTransition(() => {
-      archiveArea(areaId);
+      unarchiveArea(areaId);
     });
   }
 
@@ -80,6 +90,15 @@ export function AreasList({
               >
                 <div className="flex-1 text-sm font-medium">{area.name}</div>
                 {area.archived && <Badge>Archived</Badge>}
+                {area.archived && (
+                  <button
+                    onClick={() => handleUnarchive(area.id)}
+                    title={ta("unarchive")}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition"
+                  >
+                    <ArchiveRestore size={13} />
+                  </button>
+                )}
                 {!area.archived && (
                   <div className="flex gap-1">
                     <button
@@ -89,7 +108,7 @@ export function AreasList({
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => handleArchive(area.id)}
+                      onClick={() => setArchiveTarget(area)}
                       className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-danger hover:bg-accent transition"
                     >
                       <Archive size={13} />
@@ -134,6 +153,24 @@ export function AreasList({
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        title={ta("archiveConfirm", { name: archiveTarget?.name ?? "" })}
+      >
+        <p className="text-sm text-muted-foreground">
+          {ta("archiveConfirmDesc")}
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button type="button" variant="ghost" onClick={() => setArchiveTarget(null)}>
+            {tc("cancel")}
+          </Button>
+          <Button variant="danger" disabled={pending} onClick={confirmArchive}>
+            {tc("confirm")}
+          </Button>
+        </div>
       </Dialog>
     </div>
   );

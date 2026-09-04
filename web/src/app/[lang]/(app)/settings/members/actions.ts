@@ -56,19 +56,24 @@ export async function inviteMember(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  const notifier = getNotificationProvider();
-  await notifier.sendEmail({
-    to: email,
-    subject: `You're invited to join ${s.orgName} on Penshyft`,
-    body: teamInviteEmail({
-      inviteeName: "",
-      orgName: s.orgName,
-      inviterName: s.memberName,
-      acceptUrl: `${appUrl}/invite/${token}`,
-      role: role.replace("_", " "),
-    }),
-    orgId: s.orgId,
-  });
+  let warning: string | undefined;
+  try {
+    const notifier = getNotificationProvider();
+    await notifier.sendEmail({
+      to: email,
+      subject: `You're invited to join ${s.orgName} on Penshyft`,
+      body: teamInviteEmail({
+        inviteeName: "",
+        orgName: s.orgName,
+        inviterName: s.memberName,
+        acceptUrl: `${appUrl}/invite/${token}`,
+        role: role.replace("_", " "),
+      }),
+      orgId: s.orgId,
+    });
+  } catch {
+    warning = "Invite created but notification email could not be sent.";
+  }
 
   await logAudit({
     orgId: s.orgId,
@@ -78,6 +83,7 @@ export async function inviteMember(formData: FormData) {
   });
 
   revalidatePath("/settings/members");
+  if (warning) return { warning };
   return {};
 }
 

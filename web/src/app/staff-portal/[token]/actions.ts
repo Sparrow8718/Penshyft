@@ -91,3 +91,44 @@ export async function requestSwap(
 
   return {};
 }
+
+export async function submitAvailabilityRequest(
+  staffToken: string,
+  data: {
+    requestType: "day_off" | "hours_limit" | "recurring";
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    weekday?: number;
+    reason?: string;
+  },
+) {
+  const staffId = verifyStaffToken(staffToken);
+  if (!staffId) return { error: "Invalid or expired link." };
+
+  const supa = db();
+
+  const { data: staff } = await supa
+    .from("staff")
+    .select("org_id")
+    .eq("id", staffId)
+    .single();
+
+  if (!staff) return { error: "Staff member not found." };
+
+  const { error } = await supa.from("availability_request").insert({
+    staff_id: staffId,
+    org_id: staff.org_id,
+    request_type: data.requestType,
+    date: data.date || null,
+    start_time: data.startTime || null,
+    end_time: data.endTime || null,
+    weekday: data.weekday ?? null,
+    reason: data.reason?.trim() || null,
+    status: "pending",
+  });
+
+  if (error) return { error: error.message };
+
+  return { success: true };
+}

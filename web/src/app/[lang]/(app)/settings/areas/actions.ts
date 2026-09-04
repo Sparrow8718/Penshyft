@@ -57,3 +57,14 @@ export async function archiveArea(areaId: string) {
   revalidatePath("/settings/areas");
   return {};
 }
+
+export async function unarchiveArea(areaId: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await areaInOrg(areaId, s.orgId))) return { error: "Area not found." };
+
+  const supa = db();
+  await supa.from("area").update({ archived: false }).eq("id", areaId);
+  revalidatePath("/settings/areas");
+  return {};
+}

@@ -14,10 +14,23 @@ export async function updateOrg(formData: FormData) {
   if (!name) return { error: "Name is required." };
   if (!areaLabel) return { error: "Area label is required." };
 
+  const horizonUnit = formData.get("generationHorizonUnit") as string | null;
+  const horizonValue = Number(formData.get("generationHorizonValue"));
+
   const supa = db();
   const { error } = await supa
     .from("org")
-    .update({ name, industry, area_label: areaLabel })
+    .update({
+      name,
+      industry,
+      area_label: areaLabel,
+      ...(horizonUnit === "days" || horizonUnit === "months"
+        ? { generation_horizon_unit: horizonUnit }
+        : {}),
+      ...(horizonValue >= 1 && horizonValue <= 365
+        ? { generation_horizon_value: horizonValue }
+        : {}),
+    })
     .eq("id", session.orgId);
 
   if (error) return { error: error.message };

@@ -17,7 +17,7 @@ export default async function TemplatesPage() {
   const supa = db();
   const { data: templates } = await supa
     .from("shift_template")
-    .select("id, weekday, start_time, end_time, headcount, active, role_id, area_id, role:role_id (name, colour), area:area_id (name)")
+    .select("id, weekday, start_time, end_time, min_staff, max_staff, min_hours, max_hours, active, role_id, area_id, role:role_id (name, colour), area:area_id (name)")
     .eq("site_id", session.siteId)
     .order("weekday")
     .order("start_time");
@@ -44,7 +44,10 @@ export default async function TemplatesPage() {
       weekday: t.weekday,
       startTime: t.start_time,
       endTime: t.end_time,
-      headcount: t.headcount,
+      minStaff: t.min_staff,
+      maxStaff: t.max_staff,
+      minHours: t.min_hours,
+      maxHours: t.max_hours,
       active: t.active,
       roleId: t.role_id,
       roleName: role?.name ?? "",

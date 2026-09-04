@@ -14,11 +14,15 @@ export function OrgSettingsForm({
   orgName,
   industry,
   areaLabel,
+  horizonUnit,
+  horizonValue,
 }: {
   orgId: string;
   orgName: string;
   industry: string;
   areaLabel: string;
+  horizonUnit: string;
+  horizonValue: number;
 }) {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
@@ -26,6 +30,7 @@ export function OrgSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [unit, setUnit] = useState(horizonUnit);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +67,41 @@ export function OrgSettingsForm({
         <p className="mt-1 text-xs text-muted-foreground">
           What you call areas (e.g. Ward, Room, Section, Department)
         </p>
+      </div>
+
+      <hr className="border-border" />
+
+      <div>
+        <h3 className="text-sm font-semibold mb-3">{t("generationHorizon")}</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          {t("generationHorizonDesc")}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="horizonValue">{t("horizonValue")}</Label>
+            <Input
+              id="horizonValue"
+              name="generationHorizonValue"
+              type="number"
+              min={1}
+              max={unit === "months" ? 12 : 365}
+              defaultValue={horizonValue}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="horizonUnit">{t("horizonUnit")}</Label>
+            <Select
+              id="horizonUnit"
+              name="generationHorizonUnit"
+              defaultValue={horizonUnit}
+              onChange={(e) => setUnit(e.target.value)}
+            >
+              <option value="days">{t("horizonDays")}</option>
+              <option value="months">{t("horizonMonths")}</option>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}

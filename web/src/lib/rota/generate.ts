@@ -6,9 +6,6 @@ import { logAudit } from "@/lib/db/audit";
 import { getSession } from "@/lib/auth/session";
 import { siteInOrg } from "@/lib/auth/guards";
 
-// All date math is done in UTC so that parsing a bare "YYYY-MM-DD" (which JS
-// treats as UTC midnight) and computing "this Monday" agree on any host
-// timezone. Vercel runs UTC, but this keeps it correct off-Vercel too.
 function addDays(date: Date, days: number) {
   const d = new Date(date);
   d.setUTCDate(d.getUTCDate() + days);
@@ -27,6 +24,25 @@ function getMonday(date: Date) {
   return d;
 }
 
+function toMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function shiftDurationHours(start: string, end: string) {
+  let mins = toMinutes(end) - toMinutes(start);
+  if (mins <= 0) mins += 1440;
+  return mins / 60;
+}
+
+function rangeOverlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+  const as = toMinutes(aStart);
+  const ae = toMinutes(aEnd) <= as ? toMinutes(aEnd) + 1440 : toMinutes(aEnd);
+  const bs = toMinutes(bStart);
+  const be = toMinutes(bEnd) <= bs ? toMinutes(bEnd) + 1440 : toMinutes(bEnd);
+  return as < be && bs < ae;
+}
+
 export async function generateRota(siteId: string, weekStartStr?: string) {
   const s = await getSession();
   if (!s) return { error: "Not authenticated." };
@@ -37,10 +53,11 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
 
   const weekStart = weekStartStr ? new Date(`${weekStartStr}T00:00:00Z`) : getMonday(new Date());
   const weekStartIso = toIso(weekStart);
+  const weekEnd = toIso(addDays(weekStart, 6));
 
   const { data: templates } = await supa
     .from("shift_template")
-    .select("weekday, start_time, end_time, headcount, role_id, area_id")
+    .select("weekday, start_time, end_time, min_staff, max_staff, role_id, area_id")
     .eq("site_id", siteId)
     .eq("active", true);
 
@@ -48,8 +65,17 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
     return { error: "No active shift templates found. Add templates in Settings first." };
   }
 
-  // Delete existing rota-generated shifts for this week (allow regeneration)
-  const weekEnd = toIso(addDays(weekStart, 6));
+  // Load blocked dates for this site/week
+  const { data: blockedRows } = await supa
+    .from("site_blocked_date")
+    .select("date")
+    .eq("site_id", siteId)
+    .gte("date", weekStartIso)
+    .lte("date", weekEnd);
+
+  const blockedDates = new Set((blockedRows ?? []).map((r) => r.date));
+
+  // Delete existing rota-generated shifts for this week
   await supa
     .from("shift")
     .delete()
@@ -58,7 +84,6 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
     .gte("date", weekStartIso)
     .lte("date", weekEnd);
 
-  // Create rota_run record
   const { data: run, error: runErr } = await supa
     .from("rota_run")
     .insert({ site_id: siteId, week_start: weekStartIso, generated_by: memberId })
@@ -67,7 +92,6 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
 
   if (runErr) return { error: runErr.message };
 
-  // Generate shifts from templates
   const shifts: {
     site_id: string;
     role_id: string;
@@ -82,7 +106,9 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
 
   for (const tmpl of templates) {
     const shiftDate = toIso(addDays(weekStart, tmpl.weekday));
-    for (let i = 0; i < tmpl.headcount; i++) {
+    if (blockedDates.has(shiftDate)) continue;
+
+    for (let i = 0; i < tmpl.min_staff; i++) {
       shifts.push({
         site_id: siteId,
         role_id: tmpl.role_id,
@@ -97,10 +123,11 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
     }
   }
 
-  const { error: shiftErr } = await supa.from("shift").insert(shifts);
-  if (shiftErr) return { error: shiftErr.message };
+  if (shifts.length > 0) {
+    const { error: shiftErr } = await supa.from("shift").insert(shifts);
+    if (shiftErr) return { error: shiftErr.message };
+  }
 
-  // Auto-assign staff based on role + area qualifications
   await autoAssign(siteId, weekStartIso, weekEnd);
 
   await logAudit({ orgId: s.orgId, actor: s.memberName, action: "rota.generated", meta: { shiftCount: shifts.length, weekStart: weekStartIso } });
@@ -111,10 +138,75 @@ export async function generateRota(siteId: string, weekStartStr?: string) {
   return { success: true, shiftCount: shifts.length };
 }
 
+export async function cloneWeek(siteId: string, sourceWeekStart: string, targetWeekStart: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await siteInOrg(siteId, s.orgId))) return { error: "Site not found." };
+
+  const supa = db();
+  const sourceEnd = toIso(addDays(new Date(`${sourceWeekStart}T00:00:00Z`), 6));
+  const targetStart = new Date(`${targetWeekStart}T00:00:00Z`);
+  const sourceStart = new Date(`${sourceWeekStart}T00:00:00Z`);
+  const dayOffset = Math.round((targetStart.getTime() - sourceStart.getTime()) / 86400000);
+
+  // Load blocked dates for target week
+  const targetEnd = toIso(addDays(targetStart, 6));
+  const { data: blockedRows } = await supa
+    .from("site_blocked_date")
+    .select("date")
+    .eq("site_id", siteId)
+    .gte("date", targetWeekStart)
+    .lte("date", targetEnd);
+  const blockedDates = new Set((blockedRows ?? []).map((r) => r.date));
+
+  const { data: sourceShifts } = await supa
+    .from("shift")
+    .select("role_id, area_id, date, start_time, end_time, notes")
+    .eq("site_id", siteId)
+    .neq("status", "cancelled")
+    .gte("date", sourceWeekStart)
+    .lte("date", sourceEnd);
+
+  if (!sourceShifts || sourceShifts.length === 0) {
+    return { error: "No shifts to clone in the source week." };
+  }
+
+  const newShifts = sourceShifts
+    .map((sh) => {
+      const srcDate = new Date(`${sh.date}T00:00:00Z`);
+      const newDate = toIso(addDays(srcDate, dayOffset));
+      return { newDate, sh };
+    })
+    .filter(({ newDate }) => !blockedDates.has(newDate))
+    .map(({ newDate, sh }) => ({
+      site_id: siteId,
+      role_id: sh.role_id,
+      area_id: sh.area_id,
+      date: newDate,
+      start_time: sh.start_time,
+      end_time: sh.end_time,
+      notes: sh.notes,
+      source: "cloned" as const,
+      status: "open" as const,
+    }));
+
+  if (newShifts.length === 0) {
+    return { error: "All target dates are blocked." };
+  }
+
+  const { error } = await supa.from("shift").insert(newShifts);
+  if (error) return { error: error.message };
+
+  await logAudit({ orgId: s.orgId, actor: s.memberName, action: "rota.cloned", meta: { from: sourceWeekStart, to: targetWeekStart, count: newShifts.length } });
+
+  revalidatePath("/rota");
+  revalidatePath("/shifts");
+  return { success: true, clonedCount: newShifts.length };
+}
+
 async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
   const supa = db();
 
-  // Get open shifts for this week
   const { data: openShifts } = await supa
     .from("shift")
     .select("id, role_id, area_id, date, start_time, end_time")
@@ -127,37 +219,28 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
 
   if (!openShifts || openShifts.length === 0) return;
 
-  // Get org_id from site
-  const { data: site } = await supa
-    .from("site")
-    .select("org_id")
-    .eq("id", siteId)
-    .single();
+  const { data: site } = await supa.from("site").select("org_id").eq("id", siteId).single();
   if (!site) return;
 
-  // Get active staff with their roles and areas
-  const { data: staff } = await supa
+  const { data: staffRows } = await supa
     .from("staff")
-    .select("id")
+    .select("id, max_hours_per_week, max_hours_per_day, max_days_per_week")
     .eq("org_id", site.org_id)
     .eq("active", true)
     .eq("archived", false);
 
-  if (!staff || staff.length === 0) return;
+  if (!staffRows || staffRows.length === 0) return;
 
-  const staffIds = staff.map((s) => s.id);
+  const staffIds = staffRows.map((s) => s.id);
+  const staffConstraints = new Map(staffRows.map((s) => [s.id, {
+    maxHoursWeek: s.max_hours_per_week ? Number(s.max_hours_per_week) : null,
+    maxHoursDay: s.max_hours_per_day ? Number(s.max_hours_per_day) : null,
+    maxDaysWeek: s.max_days_per_week,
+  }]));
 
-  const { data: staffRoles } = await supa
-    .from("staff_role")
-    .select("staff_id, role_id")
-    .in("staff_id", staffIds);
+  const { data: staffRoles } = await supa.from("staff_role").select("staff_id, role_id").in("staff_id", staffIds);
+  const { data: staffAreas } = await supa.from("staff_area").select("staff_id, area_id").in("staff_id", staffIds);
 
-  const { data: staffAreas } = await supa
-    .from("staff_area")
-    .select("staff_id, area_id")
-    .in("staff_id", staffIds);
-
-  // Load availability flags for the week
   const { data: availRows } = await supa
     .from("staff_availability")
     .select("staff_id, date, available")
@@ -172,7 +255,6 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
     unavailableDates.get(row.staff_id)!.add(row.date);
   }
 
-  // Build lookup maps
   const rolesByStaff = new Map<string, Set<string>>();
   for (const sr of staffRoles ?? []) {
     if (!rolesByStaff.has(sr.staff_id)) rolesByStaff.set(sr.staff_id, new Set());
@@ -185,31 +267,15 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
     areasByStaff.get(sa.staff_id)!.add(sa.area_id);
   }
 
-  // Track assignments per staff per day for load balancing
-  const assignmentsPerDay = new Map<string, number>(); // "staffId:date" -> count
-  const totalAssignments = new Map<string, number>(); // staffId -> total
+  const assignmentsPerDay = new Map<string, number>();
+  const totalAssignments = new Map<string, number>();
+  const hoursPerDay = new Map<string, number>();
+  const hoursPerWeek = new Map<string, number>();
+  const daysWorked = new Map<string, Set<string>>();
+  const assignedShifts = new Map<string, { date: string; start: string; end: string }[]>();
 
   function getKey(staffId: string, date: string) {
     return `${staffId}:${date}`;
-  }
-
-  // Check if a staff member is available (no overlapping shift on same date/time)
-  const assignedShifts = new Map<string, { date: string; start: string; end: string }[]>();
-
-  // Minutes since midnight; an end at/before the start means the shift runs
-  // past midnight, so extend it by a day for interval comparison. (Overlaps
-  // that spill across two different calendar dates are still only compared
-  // within the same `date` bucket — a known limitation, not a regression.)
-  function toMinutes(t: string) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  }
-  function rangeOverlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
-    const as = toMinutes(aStart);
-    const ae = toMinutes(aEnd) <= as ? toMinutes(aEnd) + 1440 : toMinutes(aEnd);
-    const bs = toMinutes(bStart);
-    const be = toMinutes(bEnd) <= bs ? toMinutes(bEnd) + 1440 : toMinutes(bEnd);
-    return as < be && bs < ae;
   }
 
   function isAvailable(staffId: string, date: string, start: string, end: string) {
@@ -230,17 +296,39 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
     return true;
   }
 
-  // Assign shifts, preferring staff with fewer assignments (load balancing)
+  function meetsConstraints(staffId: string, date: string, start: string, end: string) {
+    const constraints = staffConstraints.get(staffId);
+    if (!constraints) return true;
+    const duration = shiftDurationHours(start, end);
+
+    if (constraints.maxHoursDay !== null) {
+      const dayHours = hoursPerDay.get(getKey(staffId, date)) ?? 0;
+      if (dayHours + duration > constraints.maxHoursDay) return false;
+    }
+
+    if (constraints.maxHoursWeek !== null) {
+      const weekHours = hoursPerWeek.get(staffId) ?? 0;
+      if (weekHours + duration > constraints.maxHoursWeek) return false;
+    }
+
+    if (constraints.maxDaysWeek !== null) {
+      const days = daysWorked.get(staffId) ?? new Set();
+      if (!days.has(date) && days.size >= constraints.maxDaysWeek) return false;
+    }
+
+    return true;
+  }
+
   for (const shift of openShifts) {
     const eligible = staffIds.filter(
       (id) =>
         canCover(id, shift.role_id, shift.area_id) &&
-        isAvailable(id, shift.date, shift.start_time, shift.end_time),
+        isAvailable(id, shift.date, shift.start_time, shift.end_time) &&
+        meetsConstraints(id, shift.date, shift.start_time, shift.end_time),
     );
 
     if (eligible.length === 0) continue;
 
-    // Pick the person with fewest total assignments, then fewest on this day
     eligible.sort((a, b) => {
       const totalA = totalAssignments.get(a) ?? 0;
       const totalB = totalAssignments.get(b) ?? 0;
@@ -251,8 +339,8 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
     });
 
     const chosen = eligible[0];
+    const duration = shiftDurationHours(shift.start_time, shift.end_time);
 
-    // Record the assignment
     await supa
       .from("shift")
       .update({
@@ -262,10 +350,14 @@ async function autoAssign(siteId: string, weekStart: string, weekEnd: string) {
       })
       .eq("id", shift.id);
 
-    // Update tracking
     const dayKey = getKey(chosen, shift.date);
     assignmentsPerDay.set(dayKey, (assignmentsPerDay.get(dayKey) ?? 0) + 1);
     totalAssignments.set(chosen, (totalAssignments.get(chosen) ?? 0) + 1);
+    hoursPerDay.set(dayKey, (hoursPerDay.get(dayKey) ?? 0) + duration);
+    hoursPerWeek.set(chosen, (hoursPerWeek.get(chosen) ?? 0) + duration);
+
+    if (!daysWorked.has(chosen)) daysWorked.set(chosen, new Set());
+    daysWorked.get(chosen)!.add(shift.date);
 
     if (!assignedShifts.has(chosen)) assignedShifts.set(chosen, []);
     assignedShifts.get(chosen)!.push({

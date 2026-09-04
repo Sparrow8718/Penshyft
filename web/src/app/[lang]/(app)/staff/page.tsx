@@ -18,7 +18,7 @@ export default async function StaffPage() {
 
   const { data: staff } = await supa
     .from("staff")
-    .select("id, name, email, mobile, notes, active, archived, org_id")
+    .select("id, name, email, mobile, notes, active, archived, org_id, max_hours_per_week, max_hours_per_day, max_days_per_week")
     .eq("org_id", session.orgId)
     .order("name");
 

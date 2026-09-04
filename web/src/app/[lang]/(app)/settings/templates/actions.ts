@@ -13,7 +13,12 @@ export async function createTemplate(formData: FormData) {
   const weekday = Number(formData.get("weekday"));
   const startTime = formData.get("startTime") as string;
   const endTime = formData.get("endTime") as string;
-  const headcount = Number(formData.get("headcount"));
+  const minStaff = Number(formData.get("minStaff")) || 1;
+  const maxStaff = Number(formData.get("maxStaff")) || minStaff;
+  const minHoursRaw = formData.get("minHours") as string;
+  const maxHoursRaw = formData.get("maxHours") as string;
+  const minHours = minHoursRaw ? Number(minHoursRaw) : null;
+  const maxHours = maxHoursRaw ? Number(maxHoursRaw) : null;
   const roleId = formData.get("roleId") as string;
   const areaId = (formData.get("areaId") as string) || null;
 
@@ -27,7 +32,10 @@ export async function createTemplate(formData: FormData) {
     weekday,
     start_time: startTime,
     end_time: endTime,
-    headcount,
+    min_staff: minStaff,
+    max_staff: maxStaff,
+    min_hours: minHours,
+    max_hours: maxHours,
     role_id: roleId,
     area_id: areaId,
   });
@@ -45,7 +53,12 @@ export async function updateTemplate(formData: FormData) {
   const weekday = Number(formData.get("weekday"));
   const startTime = formData.get("startTime") as string;
   const endTime = formData.get("endTime") as string;
-  const headcount = Number(formData.get("headcount"));
+  const minStaff = Number(formData.get("minStaff")) || 1;
+  const maxStaff = Number(formData.get("maxStaff")) || minStaff;
+  const minHoursRaw = formData.get("minHours") as string;
+  const maxHoursRaw = formData.get("maxHours") as string;
+  const minHours = minHoursRaw ? Number(minHoursRaw) : null;
+  const maxHours = maxHoursRaw ? Number(maxHoursRaw) : null;
   const roleId = formData.get("roleId") as string;
   const areaId = (formData.get("areaId") as string) || null;
 
@@ -58,7 +71,7 @@ export async function updateTemplate(formData: FormData) {
   const supa = db();
   const { error } = await supa
     .from("shift_template")
-    .update({ weekday, start_time: startTime, end_time: endTime, headcount, role_id: roleId, area_id: areaId })
+    .update({ weekday, start_time: startTime, end_time: endTime, min_staff: minStaff, max_staff: maxStaff, min_hours: minHours, max_hours: maxHours, role_id: roleId, area_id: areaId })
     .eq("id", id)
     .in("site_id", siteIds);
 

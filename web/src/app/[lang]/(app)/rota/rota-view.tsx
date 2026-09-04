@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Sparkles, Send } from "lucide-react";
-import { generateRota } from "@/lib/rota/generate";
+import { ChevronLeft, ChevronRight, Sparkles, Send, Copy, Ban } from "lucide-react";
+import { generateRota, cloneWeek } from "@/lib/rota/generate";
 import { blastShift } from "@/lib/offers/blast";
 import { assignShift } from "../shifts/actions";
 
@@ -31,6 +31,7 @@ type Shift = {
 
 type Role = { id: string; name: string; colour: string | null };
 type Staff = { id: string; name: string };
+type BlockedDate = { date: string; reason: string | null };
 
 export function RotaView({
   shifts,
@@ -40,6 +41,7 @@ export function RotaView({
   weekStart,
   siteId,
   memberId,
+  blockedDates,
 }: {
   shifts: Shift[];
   roles: Role[];
@@ -48,6 +50,7 @@ export function RotaView({
   weekStart: string;
   siteId: string;
   memberId: string;
+  blockedDates: BlockedDate[];
 }) {
   const t = useTranslations("rota");
   const tc = useTranslations("common");
@@ -55,6 +58,11 @@ export function RotaView({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [assignDialog, setAssignDialog] = useState<Shift | null>(null);
+  const [cloneConfirmOpen, setCloneConfirmOpen] = useState(false);
+  const [cloneResult, setCloneResult] = useState<string | null>(null);
+
+  const blockedSet = new Set(blockedDates.map((b) => b.date));
+  const blockedReasons = new Map(blockedDates.map((b) => [b.date, b.reason]));
 
   function navigateWeek(offset: number) {
     const d = new Date(weekStart);
@@ -62,10 +70,30 @@ export function RotaView({
     router.push(`/${locale}/rota?week=${d.toISOString().slice(0, 10)}`);
   }
 
+  function getNextWeekStart() {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }
+
   function handleGenerate() {
     startTransition(async () => {
       await generateRota(siteId, weekStart);
       router.refresh();
+    });
+  }
+
+  function handleClone() {
+    setCloneResult(null);
+    startTransition(async () => {
+      const res = await cloneWeek(siteId, weekStart, getNextWeekStart());
+      if (res.error) {
+        setCloneResult(res.error);
+      } else {
+        setCloneResult(t("cloneSuccess", { count: res.clonedCount ?? 0 }));
+        router.refresh();
+      }
+      setCloneConfirmOpen(false);
     });
   }
 
@@ -83,7 +111,6 @@ export function RotaView({
 
   const hasShifts = shifts.length > 0;
 
-  // Group shifts by date for the grid
   const shiftsByDate = new Map<string, Shift[]>();
   for (const s of shifts) {
     if (s.status === "cancelled") continue;
@@ -106,15 +133,28 @@ export function RotaView({
           <h1 className="text-lg font-semibold">{t("title")}</h1>
           <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button
-          variant="primary"
-          className="h-8 text-xs"
-          onClick={handleGenerate}
-          disabled={pending}
-        >
-          <Sparkles size={14} />
-          {hasShifts ? t("regenerate") : t("generate")}
-        </Button>
+        <div className="flex gap-2">
+          {hasShifts && (
+            <Button
+              variant="secondary"
+              className="h-8 text-xs"
+              onClick={() => setCloneConfirmOpen(true)}
+              disabled={pending}
+            >
+              <Copy size={14} />
+              {t("cloneToNextWeek")}
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            className="h-8 text-xs"
+            onClick={handleGenerate}
+            disabled={pending}
+          >
+            <Sparkles size={14} />
+            {hasShifts ? t("regenerate") : t("generate")}
+          </Button>
+        </div>
       </div>
 
       {/* Week picker */}
@@ -136,8 +176,15 @@ export function RotaView({
         </button>
       </div>
 
+      {/* Clone result message */}
+      {cloneResult && (
+        <div className={`text-sm px-3 py-2 rounded-md ${cloneResult.includes("error") || cloneResult.includes("No") || cloneResult.includes("blocked") ? "bg-danger/10 text-danger" : "bg-emerald-500/10 text-emerald-600"}`}>
+          {cloneResult}
+        </div>
+      )}
+
       {/* Week grid */}
-      {!hasShifts ? (
+      {!hasShifts && blockedDates.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-12 text-center">
           <p className="text-sm text-muted-foreground">{t("noShifts")}</p>
         </div>
@@ -145,16 +192,28 @@ export function RotaView({
         <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
           {days.map((date, i) => {
             const dayShifts = shiftsByDate.get(date) ?? [];
+            const isBlocked = blockedSet.has(date);
+            const blockReason = blockedReasons.get(date);
             const dateObj = new Date(date);
             const dayNum = dateObj.toLocaleDateString(locale, { day: "numeric" });
             return (
               <div
                 key={date}
-                className="rounded-lg border border-border bg-card p-2 min-h-[120px]"
+                className={`rounded-lg border p-2 min-h-[120px] ${
+                  isBlocked
+                    ? "border-danger/30 bg-danger/5"
+                    : "border-border bg-card"
+                }`}
               >
                 <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                   <span>{t(DAY_KEYS[i])}</span>
                   <span className="text-foreground">{dayNum}</span>
+                  {isBlocked && (
+                    <span className="ml-auto inline-flex items-center gap-0.5 text-danger text-[10px]" title={blockReason ?? t("blockedDate")}>
+                      <Ban size={10} />
+                      {blockReason ?? t("blockedDate")}
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   {dayShifts.map((shift) => (
@@ -203,6 +262,25 @@ export function RotaView({
           })}
         </div>
       )}
+
+      {/* Clone confirmation dialog */}
+      <Dialog
+        open={cloneConfirmOpen}
+        onClose={() => setCloneConfirmOpen(false)}
+        title={t("cloneToNextWeek")}
+      >
+        <p className="text-sm text-muted-foreground mb-4">
+          {t("cloneConfirm", { count: shifts.filter((s) => s.status !== "cancelled").length })}
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setCloneConfirmOpen(false)}>
+            {tc("cancel")}
+          </Button>
+          <Button onClick={handleClone} disabled={pending}>
+            {t("cloneToNextWeek")}
+          </Button>
+        </div>
+      </Dialog>
 
       {/* Assign dialog */}
       <Dialog

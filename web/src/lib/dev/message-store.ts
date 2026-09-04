@@ -6,7 +6,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+const DATA_DIR = process.env.VERCEL
+  ? path.join("/tmp", ".data")
+  : path.join(process.cwd(), ".data");
 const FILE = path.join(DATA_DIR, "messages.json");
 
 export type StoredMessage = {
