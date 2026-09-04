@@ -37,16 +37,21 @@ export function MembersList({
   const tc = useTranslations("common");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleInvite(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setWarning(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       const res = await inviteMember(fd);
       if (res?.error) setError(res.error);
-      else setDialogOpen(false);
+      else {
+        setDialogOpen(false);
+        if ("warning" in res && res.warning) setWarning(res.warning as string);
+      }
     });
   }
 
@@ -91,6 +96,7 @@ export function MembersList({
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+      {warning && <p className="text-sm text-amber-600">{warning}</p>}
 
       <div className="space-y-2">
         {members.map((m) => (

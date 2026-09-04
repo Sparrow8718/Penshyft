@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Archive } from "lucide-react";
-import { createRole, updateRole, archiveRole } from "./actions";
+import { Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { createRole, updateRole, archiveRole, unarchiveRole } from "./actions";
 
 type Role = { id: string; name: string; colour: string | null; archived: boolean };
 
@@ -26,8 +26,10 @@ export function RolesList({
   orgId: string;
 }) {
   const tc = useTranslations("common");
+  const tr = useTranslations("roles");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Role | null>(null);
   const [selectedColour, setSelectedColour] = useState(PRESET_COLOURS[0]);
   const [pending, startTransition] = useTransition();
 
@@ -57,9 +59,17 @@ export function RolesList({
     });
   }
 
-  function handleArchive(roleId: string) {
+  function confirmArchive() {
+    if (!archiveTarget) return;
+    startTransition(async () => {
+      await archiveRole(archiveTarget.id);
+      setArchiveTarget(null);
+    });
+  }
+
+  function handleUnarchive(roleId: string) {
     startTransition(() => {
-      archiveRole(roleId);
+      unarchiveRole(roleId);
     });
   }
 
@@ -83,6 +93,15 @@ export function RolesList({
             {role.archived && (
               <span className="text-xs text-muted-foreground">Archived</span>
             )}
+            {role.archived && (
+              <button
+                onClick={() => handleUnarchive(role.id)}
+                title={tr("unarchive")}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition"
+              >
+                <ArchiveRestore size={13} />
+              </button>
+            )}
             {!role.archived && (
               <div className="flex gap-1">
                 <button
@@ -92,7 +111,7 @@ export function RolesList({
                   <Pencil size={13} />
                 </button>
                 <button
-                  onClick={() => handleArchive(role.id)}
+                  onClick={() => setArchiveTarget(role)}
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-danger hover:bg-accent transition"
                 >
                   <Archive size={13} />
@@ -148,6 +167,24 @@ export function RolesList({
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        title={tr("archiveConfirm", { name: archiveTarget?.name ?? "" })}
+      >
+        <p className="text-sm text-muted-foreground">
+          {tr("archiveConfirmDesc")}
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button type="button" variant="ghost" onClick={() => setArchiveTarget(null)}>
+            {tc("cancel")}
+          </Button>
+          <Button variant="danger" disabled={pending} onClick={confirmArchive}>
+            {tc("confirm")}
+          </Button>
+        </div>
       </Dialog>
     </div>
   );

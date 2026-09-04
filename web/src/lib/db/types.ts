@@ -66,6 +66,79 @@ export type Database = {
           },
         ]
       }
+      availability_request: {
+        Row: {
+          id: string
+          staff_id: string
+          org_id: string
+          request_type: string
+          date: string | null
+          start_time: string | null
+          end_time: string | null
+          weekday: number | null
+          reason: string | null
+          status: string
+          resolved_by: string | null
+          resolved_at: string | null
+          manager_note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          staff_id: string
+          org_id: string
+          request_type: string
+          date?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          weekday?: number | null
+          reason?: string | null
+          status?: string
+          resolved_by?: string | null
+          resolved_at?: string | null
+          manager_note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          staff_id?: string
+          org_id?: string
+          request_type?: string
+          date?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          weekday?: number | null
+          reason?: string | null
+          status?: string
+          resolved_by?: string | null
+          resolved_at?: string | null
+          manager_note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_request_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_request_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_request_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -605,8 +678,11 @@ export type Database = {
           area_id: string | null
           created_at: string
           end_time: string
-          headcount: number
           id: string
+          min_staff: number
+          max_staff: number
+          min_hours: number | null
+          max_hours: number | null
           role_id: string
           site_id: string
           start_time: string
@@ -617,8 +693,11 @@ export type Database = {
           area_id?: string | null
           created_at?: string
           end_time: string
-          headcount: number
           id?: string
+          min_staff?: number
+          max_staff?: number
+          min_hours?: number | null
+          max_hours?: number | null
           role_id: string
           site_id: string
           start_time: string
@@ -629,8 +708,11 @@ export type Database = {
           area_id?: string | null
           created_at?: string
           end_time?: string
-          headcount?: number
           id?: string
+          min_staff?: number
+          max_staff?: number
+          min_hours?: number | null
+          max_hours?: number | null
           role_id?: string
           site_id?: string
           start_time?: string
@@ -653,6 +735,38 @@ export type Database = {
           },
           {
             foreignKeyName: "shift_template_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "site"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_blocked_date: {
+        Row: {
+          id: string
+          site_id: string
+          date: string
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          date: string
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          date?: string
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_blocked_date_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "site"
@@ -711,6 +825,9 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          max_days_per_week: number | null
+          max_hours_per_day: number | null
+          max_hours_per_week: number | null
           mobile: string | null
           name: string
           notes: string | null
@@ -722,6 +839,9 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          max_days_per_week?: number | null
+          max_hours_per_day?: number | null
+          max_hours_per_week?: number | null
           mobile?: string | null
           name: string
           notes?: string | null
@@ -733,6 +853,9 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          max_days_per_week?: number | null
+          max_hours_per_day?: number | null
+          max_hours_per_week?: number | null
           mobile?: string | null
           name?: string
           notes?: string | null

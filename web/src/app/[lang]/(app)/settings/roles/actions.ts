@@ -55,3 +55,14 @@ export async function archiveRole(roleId: string) {
   revalidatePath("/settings/roles");
   return {};
 }
+
+export async function unarchiveRole(roleId: string) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+  if (!(await roleInOrg(roleId, s.orgId))) return { error: "Role not found." };
+
+  const supa = db();
+  await supa.from("role").update({ archived: false }).eq("id", roleId).eq("org_id", s.orgId);
+  revalidatePath("/settings/roles");
+  return {};
+}

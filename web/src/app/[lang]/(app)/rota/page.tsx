@@ -71,6 +71,18 @@ export default async function RotaPage({
     .eq("archived", false)
     .order("name");
 
+  const { data: blockedRows } = await supa
+    .from("site_blocked_date")
+    .select("date, reason")
+    .eq("site_id", session.siteId)
+    .gte("date", weekStartIso)
+    .lte("date", weekEndIso);
+
+  const blockedDates = (blockedRows ?? []).map((r) => ({
+    date: r.date as string,
+    reason: r.reason as string | null,
+  }));
+
   const enriched = (shifts ?? []).map((row) => {
     const role = Array.isArray(row.role) ? row.role[0] : row.role;
     const area = Array.isArray(row.area) ? row.area[0] : row.area;
@@ -101,6 +113,7 @@ export default async function RotaPage({
       weekStart={weekStartIso}
       siteId={session.siteId}
       memberId={session.memberId}
+      blockedDates={blockedDates}
     />
   );
 }

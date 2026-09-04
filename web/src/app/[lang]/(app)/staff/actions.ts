@@ -16,6 +16,12 @@ export async function createStaff(formData: FormData) {
   const email = (formData.get("email") as string)?.trim() || null;
   const mobile = (formData.get("mobile") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const maxHoursPerWeekRaw = formData.get("maxHoursPerWeek") as string;
+  const maxHoursPerDayRaw = formData.get("maxHoursPerDay") as string;
+  const maxDaysPerWeekRaw = formData.get("maxDaysPerWeek") as string;
+  const max_hours_per_week = maxHoursPerWeekRaw ? Number(maxHoursPerWeekRaw) : null;
+  const max_hours_per_day = maxHoursPerDayRaw ? Number(maxHoursPerDayRaw) : null;
+  const max_days_per_week = maxDaysPerWeekRaw ? Number(maxDaysPerWeekRaw) : null;
 
   if (!name) return { error: "Name is required." };
 
@@ -27,7 +33,7 @@ export async function createStaff(formData: FormData) {
   const supa = db();
   const { data, error } = await supa
     .from("staff")
-    .insert({ org_id: orgId, name, email, mobile, notes })
+    .insert({ org_id: orgId, name, email, mobile, notes, max_hours_per_week, max_hours_per_day, max_days_per_week })
     .select("id")
     .single();
 
@@ -48,6 +54,12 @@ export async function updateStaff(formData: FormData) {
   const email = (formData.get("email") as string)?.trim() || null;
   const mobile = (formData.get("mobile") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const maxHoursPerWeekRaw = formData.get("maxHoursPerWeek") as string;
+  const maxHoursPerDayRaw = formData.get("maxHoursPerDay") as string;
+  const maxDaysPerWeekRaw = formData.get("maxDaysPerWeek") as string;
+  const max_hours_per_week = maxHoursPerWeekRaw ? Number(maxHoursPerWeekRaw) : null;
+  const max_hours_per_day = maxHoursPerDayRaw ? Number(maxHoursPerDayRaw) : null;
+  const max_days_per_week = maxDaysPerWeekRaw ? Number(maxDaysPerWeekRaw) : null;
 
   if (!name) return { error: "Name is required." };
   if (!(await staffInOrg(staffId, s.orgId))) return { error: "Staff member not found." };
@@ -55,7 +67,7 @@ export async function updateStaff(formData: FormData) {
   const supa = db();
   const { error } = await supa
     .from("staff")
-    .update({ name, email, mobile, notes })
+    .update({ name, email, mobile, notes, max_hours_per_week, max_hours_per_day, max_days_per_week })
     .eq("id", staffId)
     .eq("org_id", s.orgId);
 

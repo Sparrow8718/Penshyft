@@ -66,6 +66,12 @@ export default async function StaffPortalPage({
     .eq("requester_staff_id", staffId)
     .eq("status", "pending");
 
+  const { data: availabilityRequests } = await supa
+    .from("availability_request")
+    .select("id, request_type, date, start_time, end_time, weekday, reason, status, created_at")
+    .eq("staff_id", staffId)
+    .order("created_at", { ascending: false });
+
   const pendingShiftIds = new Set((pendingSwaps ?? []).map((s) => s.shift_id));
 
   const enrichedShifts = (shifts ?? []).map((s) => {
@@ -94,6 +100,7 @@ export default async function StaffPortalPage({
           staffId={staff.id}
           staffToken={token}
           shifts={enrichedShifts}
+          availabilityRequests={availabilityRequests ?? []}
         />
       </div>
     </div>

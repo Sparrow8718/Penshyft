@@ -93,6 +93,51 @@ export async function cancelShift(shiftId: string) {
   return {};
 }
 
+export async function createShiftBatch(formData: FormData) {
+  const s = await getSession();
+  if (!s) return { error: "Not authenticated." };
+
+  const siteId = formData.get("siteId") as string;
+  const dates = (formData.get("dates") as string).split(",").filter(Boolean);
+  const startTime = formData.get("startTime") as string;
+  const endTime = formData.get("endTime") as string;
+  const roleId = formData.get("roleId") as string;
+  const areaId = (formData.get("areaId") as string) || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
+  const minStaff = Number(formData.get("minStaff")) || 1;
+
+  if (dates.length === 0 || !startTime || !endTime || !roleId) {
+    return { error: "Dates, times, and role are required." };
+  }
+  if (!(await siteInOrg(siteId, s.orgId))) return { error: "Site not found." };
+  if (!(await roleInOrg(roleId, s.orgId))) return { error: "Invalid role." };
+  if (areaId && !(await areaInOrg(areaId, s.orgId))) return { error: "Invalid area." };
+
+  const rows = dates.flatMap((date) =>
+    Array.from({ length: minStaff }, () => ({
+      site_id: siteId,
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      role_id: roleId,
+      area_id: areaId,
+      notes,
+      source: "manual" as const,
+      status: "open" as const,
+    })),
+  );
+
+  const supa = db();
+  const { error } = await supa.from("shift").insert(rows);
+  if (error) return { error: error.message };
+
+  await logAudit({ orgId: s.orgId, actor: s.memberName, action: "shift.batch_created", meta: { count: rows.length, dates: dates.length } });
+
+  revalidatePath("/shifts");
+  revalidatePath("/dashboard");
+  return { created: rows.length };
+}
+
 export async function assignShift(shiftId: string, staffId: string | null) {
   const s = await getSession();
   if (!s) return { error: "Not authenticated." };
